@@ -8,7 +8,7 @@ const express = require('express');
 const server = express();
 
 server.use(cors({
-	origin: isProd ? 'https://prod' : 'http://localhost:8080',
+	origin: isProd ? 'https://prod' : 'http://localhost:5173',
 	credentials: true,
 }))
 
