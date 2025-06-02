@@ -13,7 +13,7 @@ async function signInUser(req, res, next) {
 	if (!email || !password) {
 		res.status(400).send({
 			result: false,
-			data: {},
+			data: null,
 			code: 400,
 			message: 'Empty fields'
 		})
@@ -46,7 +46,7 @@ async function signInUser(req, res, next) {
 		if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
 			res.status(409).send({
 				result: false,
-				data: {},
+				data: null,
 				code: 409,
 				message: 'Email conflict'
 			})
