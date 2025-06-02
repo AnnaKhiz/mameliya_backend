@@ -3,15 +3,15 @@ const knexConfig = require('../knexfile.js');
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
-const { generateJWt, hashPass } = require('../utils/authEncoding');
+const { generateJWt, hashPass, checkPass } = require('../utils/authEncoding');
 const isProd = process.env.NODE_ENV === 'production';
-async function signInUser(req, res, next) {
+async function signUpUser(req, res, next) {
 	const { body: user } = req;
 
 	const { email, password } = user;
 
 	if (!email || !password) {
-		res.status(400).send({
+		return res.status(400).send({
 			result: false,
 			data: null,
 			code: 400,
@@ -36,7 +36,7 @@ async function signInUser(req, res, next) {
 			expires: new Date(Date.now() + 86400000)
 		});
 
-		res.status(200).send({
+		return res.status(200).send({
 			result: true,
 			data: result[0],
 			code: 200,
@@ -44,7 +44,7 @@ async function signInUser(req, res, next) {
 		});
 	} catch (error) {
 		if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-			res.status(409).send({
+			return res.status(409).send({
 				result: false,
 				data: null,
 				code: 409,
@@ -54,9 +54,65 @@ async function signInUser(req, res, next) {
 			console.log('Error [SIGN UP USER]: ', error)
 		}
 	}
+}
 
+async function signInUser(req, res, next) {
+	const { email, password } = req.body;
+
+	if (!email || !password) {
+		return res.status(400).send({
+			result: false,
+			data: null,
+			code: 400,
+			message: 'Empty fields'
+		})
+	}
+
+	try {
+		const user = await knex('users').where({ email } ).first();
+
+		if (!user) {
+			return res.status(400).send({
+				result: false,
+				data: null,
+				code: 400,
+				message: 'Wrong email'
+			})
+		}
+		const isPasswordEqual = await checkPass(password, user.password);
+
+		if (!isPasswordEqual) {
+			return res.status(400).send({
+				result: false,
+				data: null,
+				code: 400,
+				message: 'Wrong password'
+			})
+		}
+
+		req._auth = { role: 'user', userId: user.userId };
+		const token = generateJWt(req._auth);
+
+		res.cookie('token', token, {
+			httpOnly: true,
+			secure: isProd,
+			sameSite: isProd ? 'None' : 'Lax',
+			path: '/user',
+			expires: new Date(Date.now() + 86400000)
+		});
+
+		res.status(200).send({
+			result: true,
+			data: user,
+			code: 200,
+			message: 'Successful'
+		});
+	} catch (error) {
+		console.log('Error [SIGN IN USER]: ', error)
+	}
 }
 
 module.exports = {
-	signInUser
+	signInUser,
+	signUpUser
 }

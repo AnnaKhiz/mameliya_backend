@@ -1,7 +1,8 @@
 const router = require('express').Router();
-const { signInUser } = require('../services/authService');
+const { signUpUser, signInUser } = require('../services/authService');
 
 // GET
+router.post('/register', signUpUser);
 router.post('/login', signInUser);
 
 module.exports = { router }
