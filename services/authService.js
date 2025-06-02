@@ -101,7 +101,7 @@ async function signInUser(req, res, next) {
 			expires: new Date(Date.now() + 86400000)
 		});
 
-		res.status(200).send({
+		return res.status(200).send({
 			result: true,
 			data: user,
 			code: 200,
