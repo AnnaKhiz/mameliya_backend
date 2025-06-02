@@ -112,7 +112,20 @@ async function signInUser(req, res, next) {
 	}
 }
 
+function logOutUser(req, res, next) {
+	res.clearCookie('token', {
+		httpOnly: true,
+		secure: isProd,
+		sameSite: isProd ? 'None' : 'Lax',
+		path: '/user',
+	});
+
+	res.send({ result: true });
+	next();
+}
+
 module.exports = {
 	signInUser,
-	signUpUser
+	signUpUser,
+	logOutUser
 }
