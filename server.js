@@ -25,4 +25,4 @@ const jsonBodyParser = express.json();
 server.use(jsonBodyParser);
 server.use(express.urlencoded({ extended: true }));
 
-server.use('/api/user', authRouter);
+server.use('/user', authRouter);
