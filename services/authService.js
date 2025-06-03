@@ -7,7 +7,6 @@ const { generateJWt, hashPass, checkPass } = require('../utils/authEncoding');
 const isProd = process.env.NODE_ENV === 'production';
 async function signUpUser(req, res, next) {
 	const { body: user } = req;
-	const clientIp = req.ip;
 
 	const { email, password } = user;
 
@@ -26,7 +25,7 @@ async function signUpUser(req, res, next) {
 		const result = await knex('users').insert(user).returning('*');
 		console.log(result);
 
-		req._auth = { role: 'user', userId: result[0].userId, ip: clientIp };
+		req._auth = { role: 'user', userId: result[0].userId };
 		const token = generateJWt(req._auth);
 
 		setCookie(res, token);
@@ -54,7 +53,6 @@ async function signUpUser(req, res, next) {
 
 async function signInUser(req, res, next) {
 	const { email, password } = req.body;
-	const clientIp = req.ip;
 
 	if (!email || !password) {
 		return res.status(400).send({
@@ -89,7 +87,7 @@ async function signInUser(req, res, next) {
 			})
 		}
 
-		req._auth = { role: 'user', userId: user.userId, ip: clientIp };
+		req._auth = { role: 'user', userId: user.userId };
 		const token = generateJWt(req._auth);
 
 		setCookie(res, token);
