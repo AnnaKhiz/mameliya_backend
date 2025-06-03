@@ -7,6 +7,7 @@ const { generateJWt, hashPass, checkPass } = require('../utils/authEncoding');
 const isProd = process.env.NODE_ENV === 'production';
 async function signUpUser(req, res, next) {
 	const { body: user } = req;
+	const clientIp = req.ip;
 
 	const { email, password } = user;
 
@@ -25,16 +26,11 @@ async function signUpUser(req, res, next) {
 		const result = await knex('users').insert(user).returning('*');
 		console.log(result);
 
-		req._auth = { role: 'user', userId: result[0].userId };
+		req._auth = { role: 'user', userId: result[0].userId, ip: clientIp };
 		const token = generateJWt(req._auth);
 
-		res.cookie('token', token, {
-			httpOnly: true,
-			secure: isProd,
-			sameSite: isProd ? 'None' : 'Lax',
-			path: '/user',
-			expires: new Date(Date.now() + 86400000)
-		});
+		setCookie(res, token);
+		delete result[0].password;
 
 		return res.status(200).send({
 			result: true,
@@ -58,6 +54,7 @@ async function signUpUser(req, res, next) {
 
 async function signInUser(req, res, next) {
 	const { email, password } = req.body;
+	const clientIp = req.ip;
 
 	if (!email || !password) {
 		return res.status(400).send({
@@ -69,7 +66,9 @@ async function signInUser(req, res, next) {
 	}
 
 	try {
-		const user = await knex('users').where({ email } ).first();
+		const user = await knex('users')
+			.where({ email } )
+			.first();
 
 		if (!user) {
 			return res.status(400).send({
@@ -90,16 +89,12 @@ async function signInUser(req, res, next) {
 			})
 		}
 
-		req._auth = { role: 'user', userId: user.userId };
+		req._auth = { role: 'user', userId: user.userId, ip: clientIp };
 		const token = generateJWt(req._auth);
 
-		res.cookie('token', token, {
-			httpOnly: true,
-			secure: isProd,
-			sameSite: isProd ? 'None' : 'Lax',
-			path: '/user',
-			expires: new Date(Date.now() + 86400000)
-		});
+		setCookie(res, token);
+
+		delete user.password;
 
 		return res.status(200).send({
 			result: true,
@@ -113,19 +108,54 @@ async function signInUser(req, res, next) {
 }
 
 function logOutUser(req, res, next) {
+	clearCookie(res);
+
+	res.send({ result: true });
+	next();
+}
+
+async function checkIsTokenExpired(req, res, next) {
+	const { userId } = req._auth;
+
+	if (!userId) {
+		return res.status(401).send({ result: false, message: 'Access denied', data: null});
+	}
+
+	try {
+		const user = await knex('users')
+			.where({ userId } )
+			.select('userId', 'first_name', 'last_name', 'age', 'email')
+			.first();
+
+		return res.status(200).send({ result: true, message: 'User authorized', data: user});
+	} catch(error) {
+		clearCookie(res);
+		return res.status(401).send({ result: false, message: 'Token expired', data: null});
+	}
+}
+
+function setCookie(res, token) {
+	res.cookie('token', token, {
+		httpOnly: true,
+		secure: isProd,
+		sameSite: isProd ? 'None' : 'Lax',
+		path: '/user',
+		expires: new Date(Date.now() + 86400000)
+	});
+}
+
+function clearCookie(res) {
 	res.clearCookie('token', {
 		httpOnly: true,
 		secure: isProd,
 		sameSite: isProd ? 'None' : 'Lax',
 		path: '/user',
 	});
-
-	res.send({ result: true });
-	next();
 }
 
 module.exports = {
 	signInUser,
 	signUpUser,
-	logOutUser
+	logOutUser,
+	checkIsTokenExpired
 }
