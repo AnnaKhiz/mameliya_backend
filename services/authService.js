@@ -65,6 +65,12 @@ async function signInUser(req, res, next) {
 
 	try {
 		const user = await knex('users')
+			.leftJoin('mama_about', 'users.userId', 'mama_about.userId')
+			.select('users.*',
+				'mama_about.mood as mama_mood',
+				'mama_about.hasRituals as mama_hasRituals',
+				'mama_about.isTimerUsed as mama_isTimerUsed',
+				'mama_about.timer as mama_timer')
 			.where({ email } )
 			.first();
 
@@ -96,7 +102,7 @@ async function signInUser(req, res, next) {
 
 		return res.status(200).send({
 			result: true,
-			data: user,
+			data: groupByPrefix('mama', user),
 			code: 200,
 			message: 'Successful'
 		});
@@ -121,12 +127,19 @@ async function checkIsTokenExpired(req, res, next) {
 
 	try {
 		const user = await knex('users')
-			.where({ userId } )
-			.select('userId', 'first_name', 'last_name', 'age', 'email')
+			.leftJoin('mama_about', 'users.userId', 'mama_about.userId')
+			.select('users.*',
+				'mama_about.mood as mama_mood',
+				'mama_about.hasRituals as mama_hasRituals',
+				'mama_about.isTimerUsed as mama_isTimerUsed',
+				'mama_about.timer as mama_timer')
+			.where('users.userId', userId )
 			.first();
 
-		return res.status(200).send({ result: true, message: 'User authorized', data: user});
+		delete user.password;
+		return res.status(200).send({ result: true, message: 'User authorized', data: groupByPrefix('mama', user)});
 	} catch(error) {
+		console.log('Error [checkIsTokenExpired]:', error);
 		clearCookie(res);
 		return res.status(401).send({ result: false, message: 'Token expired', data: null});
 	}
@@ -149,6 +162,21 @@ function clearCookie(res) {
 		sameSite: isProd ? 'None' : 'Lax',
 		path: '/user',
 	});
+}
+
+function groupByPrefix(prefix, obj) {
+	const related = {};
+	const general = {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (key.startsWith(`${prefix}_`)) {
+			const cleanKey = key.replace(`${prefix}_`, '');
+			related[cleanKey] = value;
+		} else {
+			general[key] = value;
+		}
+	}
+	general[prefix] = related;
+	return general;
 }
 
 module.exports = {
