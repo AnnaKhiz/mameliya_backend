@@ -3,6 +3,7 @@ const { port } = require('config');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { router: authRouter } = require('./routes/authRouter');
+const { router : mamaDataRouter } = require('./routes/mamaDataRouter');
 const isProd = process.env.NODE_ENV === 'production';
 const express = require('express');
 const server = express();
@@ -26,3 +27,4 @@ server.use(jsonBodyParser);
 server.use(express.urlencoded({ extended: true }));
 
 server.use('/user', authRouter);
+server.use('/user/mama', mamaDataRouter);

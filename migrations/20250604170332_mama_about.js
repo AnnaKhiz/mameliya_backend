@@ -11,6 +11,7 @@ exports.up = function(knex) {
 		table.integer('timer').notNullable().defaultTo(5);
 
 		table.string('userId').notNullable()
+			.unique()
 			.references('userId')
 			.inTable('users')
 			.onDelete('CASCADE')
