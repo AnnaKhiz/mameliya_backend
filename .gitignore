@@ -1,4 +1,4 @@
 /node_modules/
 .env
-/mameliya_front/public/database/*
-/mameliya_front/public/migrations/*
+/database/*
+/migrations/*
