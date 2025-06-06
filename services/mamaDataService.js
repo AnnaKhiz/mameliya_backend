@@ -11,10 +11,10 @@ async function updateMamaMood (req, res, next) {
 		await knex('mama_about').insert({ mood, userId }).onConflict('userId').merge();
 
 		const updatedRecordsObject = await knex('mama_about').where({ userId }).first();
-		res.send({ result: true, data: updatedRecordsObject })
+		res.send({ result: true, data: updatedRecordsObject, code: 200, message: 'Mood updated' })
 	} catch (error) {
 		console.log('Error [insert/update mood]:', error)
-		res.send({ result: false, data: [] })
+		res.status(400).send({ result: false, data: [], code: 400, message: 'Mood not updated' })
 	}
 }
 
