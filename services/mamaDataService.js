@@ -3,7 +3,7 @@ const knexConfig = require('../knexfile.js');
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 
-async function updateMamaMood (req, res, next) {
+async function updateMamaMood(req, res, next) {
 	const { mood } = req.body;
 	const { userId } = req._auth;
 
@@ -11,13 +11,46 @@ async function updateMamaMood (req, res, next) {
 		await knex('mama_about').insert({ mood, userId }).onConflict('userId').merge();
 
 		const updatedRecordsObject = await knex('mama_about').where({ userId }).first();
-		res.send({ result: true, data: updatedRecordsObject, code: 200, message: 'Mood updated' })
+		res.send({
+			result: true,
+			data: updatedRecordsObject,
+			code: 200,
+			message: 'Mood updated'
+		})
 	} catch (error) {
 		console.log('Error [insert/update mood]:', error)
-		res.status(400).send({ result: false, data: [], code: 400, message: 'Mood not updated' })
+		res.status(400).send({
+			result: false,
+			data: [],
+			code: 400,
+			message: 'Mood not updated'
+		})
+	}
+}
+
+async function getMamaInfo(req, res, next) {
+	const { userId } = req._auth;
+
+	try {
+		const result = await knex('mama_about').where({ userId }).first();
+		res.send({
+			result: true,
+			data: result,
+			code: 200,
+			message: 'Mood updated'
+		})
+	} catch (error) {
+		console.log('Error [get mama info]:', error);
+		res.status(400).send({
+			result: false,
+			data: [],
+			code: 400,
+			message: 'Mood not updated'
+		})
 	}
 }
 
 module.exports = {
-	updateMamaMood
+	updateMamaMood,
+	getMamaInfo
 }
