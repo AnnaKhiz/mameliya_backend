@@ -37,7 +37,7 @@ async function getMamaInfo(req, res, next) {
 			result: true,
 			data: result,
 			code: 200,
-			message: 'Mood updated'
+			message: 'Successful'
 		})
 	} catch (error) {
 		console.log('Error [get mama info]:', error);
@@ -45,7 +45,7 @@ async function getMamaInfo(req, res, next) {
 			result: false,
 			data: [],
 			code: 400,
-			message: 'Mood not updated'
+			message: 'Not found'
 		})
 	}
 }
