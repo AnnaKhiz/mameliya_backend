@@ -23,7 +23,14 @@ async function signUpUser(req, res, next) {
 
 	try {
 		const result = await knex('users').insert(user).returning('*');
-		console.log(result);
+		const mamaInfo = {
+			mood: 'good',
+			hasRituals: false,
+			isTimerUsed: false,
+			timer: 5,
+			userId: result[0].userId
+		}
+		await knex('mama_about').insert(mamaInfo).returning('*');
 
 		req._auth = { role: 'user', userId: result[0].userId };
 		const token = generateJWt(req._auth);
