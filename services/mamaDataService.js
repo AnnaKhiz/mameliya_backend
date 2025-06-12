@@ -50,7 +50,42 @@ async function getMamaInfo(req, res, next) {
 	}
 }
 
+async function saveMoodDetails(req, res, next) {
+	const { userId } = req._auth;
+	const { body } = req;
+
+	const moodHistory = {
+		...body,
+		userId,
+		date: Date.now()
+	}
+
+	try {
+		await knex('mood_history')
+			.insert(moodHistory)
+
+		const updatedMoodHistoryObject = await knex('mood_history').where({ userId }).first();
+		res.send({
+			result: true,
+			data: updatedMoodHistoryObject,
+			code: 200,
+			message: 'Mood history updated'
+		})
+	} catch (error) {
+		console.log('Error [post mood details]:', error);
+		res.status(400).send({
+			result: false,
+			data: [],
+			code: 400,
+			message: 'Not found'
+		})
+	}
+
+
+}
+
 module.exports = {
 	updateMamaMood,
-	getMamaInfo
+	getMamaInfo,
+	saveMoodDetails
 }
