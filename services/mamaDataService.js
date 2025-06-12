@@ -64,10 +64,11 @@ async function saveMoodDetails(req, res, next) {
 		await knex('mood_history')
 			.insert(moodHistory)
 
-		const updatedMoodHistoryObject = await knex('mood_history').where({ userId }).first();
+		const result = await knex('mood_history').where( { userId });
+
 		res.send({
 			result: true,
-			data: updatedMoodHistoryObject,
+			data: result,
 			code: 200,
 			message: 'Mood history updated'
 		})
