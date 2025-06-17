@@ -1,0 +1,30 @@
+const { google} = require("googleapis");
+const { googleId, googleRedirectUrl, googleSecret } = require('../config/default');
+
+console.log('googleId', googleId)
+console.log('googleRedirectUrl', googleRedirectUrl)
+console.log('googleSecret', googleSecret)
+
+const oauth2Client = new google.auth.OAuth2(
+	googleId,
+	googleSecret,
+	googleRedirectUrl
+);
+
+const SCOPES = ['https://www.googleapis.com/auth/calendar'];
+
+function getAuthUrl() {
+	return oauth2Client.generateAuthUrl({
+		access_type: 'offline',
+		scope: SCOPES,
+		prompt: 'consent',
+	})
+}
+
+async function getTokens(code) {
+	const { tokens } = await oauth2Client.getToken(code);
+	oauth2Client.setCredentials(tokens);
+	return tokens;
+}
+
+module.exports = { oauth2Client, getAuthUrl, getTokens }

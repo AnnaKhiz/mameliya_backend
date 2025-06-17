@@ -5,6 +5,8 @@ const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
 const { generateJWt, hashPass, checkPass } = require('../utils/authEncoding');
 const isProd = process.env.NODE_ENV === 'production';
+const { google} = require("googleapis");
+const { getAuthUrl, oauth2Client } = require('../services/googleauthService')
 async function signUpUser(req, res, next) {
 	const { body: user } = req;
 
@@ -186,9 +188,54 @@ function groupByPrefix(prefix, obj) {
 	return general;
 }
 
+async function getGoogleCalendar(req, res, next) {
+	const { googleToken } = req._googleToken;
+	const { userId } = req._auth;
+
+	if (googleToken ) {
+		await knex('users').where({ userId } ).update({ google_refresh : googleToken.refresh_token});
+		return res.redirect(`http://localhost:5173/user/${userId}/mama/beauty_calendar?status=success`);
+	}
+	return res.redirect(`http://localhost:5173/user/${userId}/mama/beauty_calendar?status=bad_request`);
+}
+
+async function getGoogleCalendarEvents(req, res, next) {
+	try {
+		const { googleToken } = req._googleToken;
+
+		if (!googleToken) {
+			return res.status(401).send({ result: false, code: 401, data: null, message: 'No token'});
+		}
+
+		await oauth2Client.setCredentials(googleToken);
+
+		if (googleToken ) {
+
+			const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+			const eventsResponse = await calendar.events.list({
+				calendarId: 'primary',
+				maxResults: 10,
+				singleEvents: true,
+				orderBy: 'startTime',
+			});
+			return res.send({ result: true, code: 200, data: { events: eventsResponse.data.items }, message: 'Google calendar is available'})
+		}
+
+	} catch (error) {
+		console.log('Google calendar [get events] ', error)
+		if (error.code === 401 || error.response?.status === 401) {
+			return res.status(401).send({ result: false, code: 401, data: null, message: 'Unauthorized or token expired' });
+		}
+		return res.status(500).send({ result: false, code: 400, data: null, message: 'Server error'})
+	}
+}
+
 module.exports = {
 	signInUser,
 	signUpUser,
 	logOutUser,
-	checkIsTokenExpired
+	checkIsTokenExpired,
+	getGoogleCalendar,
+	getGoogleCalendarEvents
 }
