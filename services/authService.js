@@ -196,14 +196,19 @@ async function getGoogleCalendar(req, res, next) {
 		await knex('users').where({ userId } ).update({ google_refresh : googleToken.refresh_token});
 		return res.redirect(`http://localhost:5173/user/${userId}/mama/beauty_calendar?status=success`);
 	}
+	await knex('users').where({ userId } ).update({ google_refresh : ''});
 	return res.redirect(`http://localhost:5173/user/${userId}/mama/beauty_calendar?status=bad_request`);
 }
 
 async function getGoogleCalendarEvents(req, res, next) {
+	const { userId } = req._auth;
+
 	try {
 		const { googleToken } = req._googleToken;
+		console.log('token google events', googleToken)
 
-		if (!googleToken) {
+		if (!googleToken.access_token) {
+			await knex('users').where({ userId } ).update({ google_refresh : ''});
 			return res.status(401).send({ result: false, code: 401, data: null, message: 'No token'});
 		}
 

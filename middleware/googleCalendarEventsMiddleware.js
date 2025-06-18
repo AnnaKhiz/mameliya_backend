@@ -12,29 +12,34 @@ async function googleCalendarEventsMiddleware (req, res, next) {
 		const refreshToken = await getRefreshTokenFromDB(userId);
 
 		if (!accessToken) {
-			return res.redirect(getAuthUrl());
-		}
-
-		oauth2Client.setCredentials({
-			access_token: accessToken,
-			refresh_token: refreshToken
-		});
-		const tokens = await oauth2Client.refreshAccessToken();
-		const credentials = tokens.credentials;
-
-		if (tokens && credentials.access_token !== accessToken) {
-			res.cookie('googleToken', credentials.access_token, {
-				httpOnly: true,
-				secure: isProd,
-				sameSite: isProd ? 'None' : 'Lax',
-				path: '/user',
-				expires: new Date(Date.now() + 86400000)
+			req._googleToken = { googleToken: {} };
+			// return res.redirect(getAuthUrl());
+			next()
+		} else {
+			oauth2Client.setCredentials({
+				access_token: accessToken,
+				refresh_token: refreshToken
 			});
-			oauth2Client.setCredentials(credentials);
 
-			req._googleToken = { googleToken: oauth2Client.credentials };
-			next();
+			const tokens = await oauth2Client.refreshAccessToken();
+			const credentials = tokens.credentials;
+
+			if (tokens && credentials.access_token !== accessToken) {
+				res.cookie('googleToken', credentials.access_token, {
+					httpOnly: true,
+					secure: isProd,
+					sameSite: isProd ? 'None' : 'Lax',
+					path: '/user',
+					expires: new Date(Date.now() + 86400000)
+				});
+				oauth2Client.setCredentials(credentials);
+
+				req._googleToken = { googleToken: oauth2Client.credentials };
+				next();
+			}
 		}
+
+
 	} catch (error) {
 		console.log('Error middleware [google calendar events] ', error);
 		return res.redirect(getAuthUrl())
