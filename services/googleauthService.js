@@ -1,10 +1,6 @@
 const { google} = require("googleapis");
 const { googleId, googleRedirectUrl, googleSecret } = require('../config/default');
 
-console.log('googleId', googleId)
-console.log('googleRedirectUrl', googleRedirectUrl)
-console.log('googleSecret', googleSecret)
-
 const oauth2Client = new google.auth.OAuth2(
 	googleId,
 	googleSecret,
