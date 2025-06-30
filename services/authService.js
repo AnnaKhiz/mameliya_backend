@@ -220,7 +220,6 @@ async function getGoogleCalendarEvents(req, res, next) {
 
 			const eventsResponse = await calendar.events.list({
 				calendarId: 'primary',
-				maxResults: 10,
 				singleEvents: true,
 				orderBy: 'startTime',
 			});
@@ -228,7 +227,58 @@ async function getGoogleCalendarEvents(req, res, next) {
 		}
 
 	} catch (error) {
-		console.log('Google calendar [get events] ', error)
+		console.error('Google calendar [get events] ', error)
+		if (error.code === 401 || error.response?.status === 401) {
+			return res.status(401).send({ result: false, code: 401, data: null, message: 'Unauthorized or token expired' });
+		}
+		return res.status(500).send({ result: false, code: 400, data: null, message: 'Server error'})
+	}
+}
+async function addGoogleEvent(req, res, next) {
+	const { userId } = req._auth;
+	const { body: event } = req;
+
+	if (!event.start || !event.end) {
+		return res.status(406).send({ result: false, code: 406, data: null, message: 'No event data!'});
+	}
+
+	try {
+
+		const { googleToken } = req._googleToken;
+		console.log('token google events [ADD]', googleToken)
+
+		if (!googleToken.access_token) {
+			await knex('users').where({ userId } ).update({ google_refresh : ''});
+			return res.status(401).send({ result: false, code: 401, data: null, message: 'No token'});
+		}
+
+		await oauth2Client.setCredentials(googleToken);
+
+		const calendar = google.calendar({ version: 'v3', auth: oauth2Client});
+
+		const newEvent = {
+			summary: event.title,
+			description: event.contentFull,
+			start: {
+				dateTime: new Date(event.start).toISOString(),
+				timeZone: 'UTC',
+			},
+			end: {
+				dateTime: new Date(event.end).toISOString(),
+				timeZone: 'UTC',
+			}
+		}
+
+		const result = await calendar.events.insert({
+			calendarId: 'primary',
+			resource: newEvent
+		})
+
+		console.log('result', result);
+		return res.status(200).send({ result: true, code: 200, data: result.data, message: 'Created successfully'});
+
+	} catch (error) {
+		console.error('Google calendar [add new event] ', error)
 		if (error.code === 401 || error.response?.status === 401) {
 			return res.status(401).send({ result: false, code: 401, data: null, message: 'Unauthorized or token expired' });
 		}
@@ -242,5 +292,6 @@ module.exports = {
 	logOutUser,
 	checkIsTokenExpired,
 	getGoogleCalendar,
-	getGoogleCalendarEvents
+	getGoogleCalendarEvents,
+	addGoogleEvent
 }

@@ -14,7 +14,7 @@ async function googleCalendarEventsMiddleware (req, res, next) {
 		if (!accessToken) {
 			req._googleToken = { googleToken: {} };
 			// return res.redirect(getAuthUrl());
-			next()
+			return next()
 		} else {
 			oauth2Client.setCredentials({
 				access_token: accessToken,
