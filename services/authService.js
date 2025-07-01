@@ -367,8 +367,7 @@ async function addGoogleEvent(req, res, next) {
 
 async function removeEventFromGoogleCalendar(req, res, next) {
 	const { userId } = req._auth;
-	const { eventId } = req.body;
-	const { type: calendarName } = req.params;
+	const { type: calendarName, eventId } = req.params;
 
 	try {
 		if (!eventId || !calendarName) {

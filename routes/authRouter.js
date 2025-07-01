@@ -21,6 +21,6 @@ router.get('/check-auth', parserJwt, checkIsTokenExpired);
 router.get('/google/check', parserJwt, googleCalendarAuthMiddleware, getGoogleCalendar);
 router.get('/google/events/:type', parserJwt, googleCalendarEventsMiddleware, getGoogleCalendarEvents);
 router.post('/google/event/add/:type', parserJwt, googleCalendarEventsMiddleware, addGoogleEvent);
-router.delete('/google/event/remove/:type', parserJwt, googleCalendarEventsMiddleware, removeEventFromGoogleCalendar);
+router.delete('/google/event/remove/:type/:eventId', parserJwt, googleCalendarEventsMiddleware, removeEventFromGoogleCalendar);
 
 module.exports = { router }
