@@ -18,7 +18,7 @@ router.post('/login', signInUser);
 router.get('/logout', logOutUser);
 router.get('/check-auth', parserJwt, checkIsTokenExpired);
 router.get('/google/check', parserJwt, googleCalendarAuthMiddleware, getGoogleCalendar);
-router.get('/google/events', parserJwt, googleCalendarEventsMiddleware, getGoogleCalendarEvents);
-router.post('/google/event/add', parserJwt, googleCalendarEventsMiddleware, addGoogleEvent);
+router.get('/google/events/:type', parserJwt, googleCalendarEventsMiddleware, getGoogleCalendarEvents);
+router.post('/google/event/add/:type', parserJwt, googleCalendarEventsMiddleware, addGoogleEvent);
 
 module.exports = { router }

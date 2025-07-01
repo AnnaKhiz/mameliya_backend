@@ -202,14 +202,20 @@ async function getGoogleCalendar(req, res, next) {
 
 async function getGoogleCalendarEvents(req, res, next) {
 	const { userId } = req._auth;
+	const { type } = req.params;
 
 	try {
 		const { googleToken } = req._googleToken;
-		console.log('token google events', googleToken)
 
 		if (!googleToken.access_token) {
 			await knex('users').where({ userId } ).update({ google_refresh : ''});
-			return res.status(401).send({ result: false, code: 401, data: null, message: 'No token'});
+
+			return res.status(401).send({
+				result: false,
+				code: 401,
+				data: null,
+				message: 'No token'
+			});
 		}
 
 		await oauth2Client.setCredentials(googleToken);
@@ -218,43 +224,81 @@ async function getGoogleCalendarEvents(req, res, next) {
 
 			const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
+			const calendarList = await calendar.calendarList.list();
+			const existingCalendar = calendarList.data.items.find(el => el.summary === type);
+
+			if (!existingCalendar) {
+				return res.send({
+					result: true,
+					code: 200,
+					data: { events: [] },
+					message: `Google calendar [${type}] is empty`}
+				)}
+
 			const eventsResponse = await calendar.events.list({
-				calendarId: 'primary',
+				calendarId: existingCalendar.id,
 				singleEvents: true,
 				orderBy: 'startTime',
 			});
-			return res.send({ result: true, code: 200, data: { events: eventsResponse.data.items }, message: 'Google calendar is available'})
+
+			return res.send({
+				result: true,
+				code: 200,
+				data: { events: eventsResponse.data.items },
+				message: 'Google calendar is available'})
 		}
 
 	} catch (error) {
-		console.error('Google calendar [get events] ', error)
+		console.error('Google calendar [GET GOOGLE EVENTS] ', error);
 		if (error.code === 401 || error.response?.status === 401) {
-			return res.status(401).send({ result: false, code: 401, data: null, message: 'Unauthorized or token expired' });
+			return res.status(401).send({
+				result: false,
+				code: 401,
+				data: null,
+				message: 'Unauthorized or token expired'
+			});
 		}
-		return res.status(500).send({ result: false, code: 400, data: null, message: 'Server error'})
+		return res.status(500).send({
+			result: false,
+			code: 500,
+			data: null,
+			message: 'Server error'
+		})
 	}
 }
 async function addGoogleEvent(req, res, next) {
 	const { userId } = req._auth;
 	const { body: event } = req;
+	const { type } = req.params;
 
 	if (!event.start || !event.end) {
-		return res.status(406).send({ result: false, code: 406, data: null, message: 'No event data!'});
+		return res.status(406).send({
+			result: false,
+			code: 406,
+			data: null,
+			message: 'No event data!'
+		});
 	}
 
 	try {
-
 		const { googleToken } = req._googleToken;
-		console.log('token google events [ADD]', googleToken)
 
 		if (!googleToken.access_token) {
 			await knex('users').where({ userId } ).update({ google_refresh : ''});
-			return res.status(401).send({ result: false, code: 401, data: null, message: 'No token'});
+			return res.status(401).send({
+				result: false,
+				code: 401,
+				data: null,
+				message: 'No token'
+			});
 		}
 
 		await oauth2Client.setCredentials(googleToken);
 
 		const calendar = google.calendar({ version: 'v3', auth: oauth2Client});
+
+		const calendarList = await calendar.calendarList.list();
+		const existingCalendar = calendarList.data.items.find(el => el.summary === type);
 
 		const newEvent = {
 			summary: event.title,
@@ -269,20 +313,55 @@ async function addGoogleEvent(req, res, next) {
 			}
 		}
 
-		const result = await calendar.events.insert({
-			calendarId: 'primary',
-			resource: newEvent
-		})
+		if (!existingCalendar) {
+			const newCalendar = await calendar.calendars.insert({
+				requestBody: {
+					summary: type,
+					timeZone: 'UTC',
+				},
+			});
 
-		console.log('result', result);
-		return res.status(200).send({ result: true, code: 200, data: result.data, message: 'Created successfully'});
+			const resultNew = await calendar.events.insert({
+				calendarId: newCalendar.data.id,
+				resource: newEvent
+			});
+
+			return res.send({
+				result: true,
+				code: 200,
+				data: resultNew.data,
+				message: 'Created successfully'
+			})
+		}
+
+		const result = await calendar.events.insert({
+			calendarId: existingCalendar.id,
+			resource: newEvent
+		});
+
+		return res.status(200).send({
+			result: true,
+			code: 200,
+			data: result.data,
+			message: 'Created successfully'
+		});
 
 	} catch (error) {
-		console.error('Google calendar [add new event] ', error)
+		console.error('Google calendar [ADD GOOGLE EVENT] ', error)
 		if (error.code === 401 || error.response?.status === 401) {
-			return res.status(401).send({ result: false, code: 401, data: null, message: 'Unauthorized or token expired' });
+			return res.status(401).send({
+				result: false,
+				code: 401,
+				data: null,
+				message: 'Unauthorized or token expired'
+			});
 		}
-		return res.status(500).send({ result: false, code: 400, data: null, message: 'Server error'})
+		return res.status(500).send({
+			result: false,
+			code: 500,
+			data: null,
+			message: 'Server error'
+		})
 	}
 }
 
