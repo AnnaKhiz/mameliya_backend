@@ -207,25 +207,11 @@ async function getGoogleCalendarEvents(req, res, next) {
 	try {
 		const { googleToken } = req._googleToken;
 
-		if (!googleToken.access_token) {
-			await knex('users').where({ userId } ).update({ google_refresh : ''});
-
-			return res.status(401).send({
-				result: false,
-				code: 401,
-				data: null,
-				message: 'No token'
-			});
-		}
-
-		await oauth2Client.setCredentials(googleToken);
+		await checkGoogleToken(req, res, next, googleToken, userId);
 
 		if (googleToken ) {
-
-			const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-			const calendarList = await calendar.calendarList.list();
-			const existingCalendar = calendarList.data.items.find(el => el.summary === calendarName);
+			const calendar = await getGoogleCalendarObject(googleToken);
+			const existingCalendar = await checkExistingCalendar(calendar, calendarName);
 
 			if (!existingCalendar) {
 				return res.send({
@@ -283,22 +269,10 @@ async function addGoogleEvent(req, res, next) {
 	try {
 		const { googleToken } = req._googleToken;
 
-		if (!googleToken.access_token) {
-			await knex('users').where({ userId } ).update({ google_refresh : ''});
-			return res.status(401).send({
-				result: false,
-				code: 401,
-				data: null,
-				message: 'No token'
-			});
-		}
+		await checkGoogleToken(req, res, next, googleToken, userId);
 
-		await oauth2Client.setCredentials(googleToken);
-
-		const calendar = google.calendar({ version: 'v3', auth: oauth2Client});
-
-		const calendarList = await calendar.calendarList.list();
-		const existingCalendar = calendarList.data.items.find(el => el.summary === calendarName);
+		const calendar = await getGoogleCalendarObject(googleToken);
+		const existingCalendar = await checkExistingCalendar(calendar, calendarName);
 
 		const newEvent = {
 			summary: event.title,
@@ -321,10 +295,7 @@ async function addGoogleEvent(req, res, next) {
 				},
 			});
 
-			const resultNew = await calendar.events.insert({
-				calendarId: newCalendar.data.id,
-				resource: newEvent
-			});
+			const resultNew = await createNewEventObject(calendar, newCalendar, newEvent);
 
 			return res.send({
 				result: true,
@@ -334,10 +305,7 @@ async function addGoogleEvent(req, res, next) {
 			})
 		}
 
-		const result = await calendar.events.insert({
-			calendarId: existingCalendar.id,
-			resource: newEvent
-		});
+		const result = await createNewEventObject(calendar, existingCalendar, newEvent);
 
 		return res.status(200).send({
 			result: true,
@@ -423,6 +391,41 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 		console.error('Google calendar [REMOVE GOOGLE EVENT] ', error);
 	}
 }
+
+async function checkGoogleToken(req, res, next, token, userId) {
+	if (!token.access_token) {
+		await knex('users').where({ userId } ).update({ google_refresh : ''});
+		return res.status(401).send({
+			result: false,
+			code: 401,
+			data: null,
+			message: 'No token'
+		});
+	}
+	return true;
+}
+
+async function getGoogleCalendarObject(token) {
+	await oauth2Client.setCredentials(token);
+	return google.calendar({ version: 'v3', auth: oauth2Client});
+}
+
+async function checkExistingCalendar(calendar, calendarName) {
+	const calendarList = await calendar.calendarList.list();
+	return calendarList.data.items.find(el => el.summary === calendarName);
+}
+
+async function createNewEventObject(calendar, existingCalendar, event) {
+	const calendarId = existingCalendar?.id || existingCalendar?.data?.id;
+
+	if (!calendarId) return;
+
+	return await calendar.events.insert({
+		calendarId,
+		resource: event
+	});
+}
+
 
 module.exports = {
 	signInUser,
