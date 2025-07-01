@@ -405,6 +405,7 @@ async function checkGoogleToken(req, res, next, token, userId) {
 	return true;
 }
 
+// helpers
 async function getGoogleCalendarObject(token) {
 	await oauth2Client.setCredentials(token);
 	return google.calendar({ version: 'v3', auth: oauth2Client});
