@@ -202,7 +202,7 @@ async function getGoogleCalendar(req, res, next) {
 
 async function getGoogleCalendarEvents(req, res, next) {
 	const { userId } = req._auth;
-	const { type } = req.params;
+	const { type: calendarName } = req.params;
 
 	try {
 		const { googleToken } = req._googleToken;
@@ -225,14 +225,14 @@ async function getGoogleCalendarEvents(req, res, next) {
 			const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
 			const calendarList = await calendar.calendarList.list();
-			const existingCalendar = calendarList.data.items.find(el => el.summary === type);
+			const existingCalendar = calendarList.data.items.find(el => el.summary === calendarName);
 
 			if (!existingCalendar) {
 				return res.send({
 					result: true,
 					code: 200,
 					data: { events: [] },
-					message: `Google calendar [${type}] is empty`}
+					message: `Google calendar [${calendarName}] is empty`}
 				)}
 
 			const eventsResponse = await calendar.events.list({
@@ -269,7 +269,7 @@ async function getGoogleCalendarEvents(req, res, next) {
 async function addGoogleEvent(req, res, next) {
 	const { userId } = req._auth;
 	const { body: event } = req;
-	const { type } = req.params;
+	const { type: calendarName } = req.params;
 
 	if (!event.start || !event.end) {
 		return res.status(406).send({
@@ -298,7 +298,7 @@ async function addGoogleEvent(req, res, next) {
 		const calendar = google.calendar({ version: 'v3', auth: oauth2Client});
 
 		const calendarList = await calendar.calendarList.list();
-		const existingCalendar = calendarList.data.items.find(el => el.summary === type);
+		const existingCalendar = calendarList.data.items.find(el => el.summary === calendarName);
 
 		const newEvent = {
 			summary: event.title,
@@ -316,7 +316,7 @@ async function addGoogleEvent(req, res, next) {
 		if (!existingCalendar) {
 			const newCalendar = await calendar.calendars.insert({
 				requestBody: {
-					summary: type,
+					summary: calendarName,
 					timeZone: 'UTC',
 				},
 			});
@@ -347,7 +347,7 @@ async function addGoogleEvent(req, res, next) {
 		});
 
 	} catch (error) {
-		console.error('Google calendar [ADD GOOGLE EVENT] ', error)
+		console.error('Google calendar [ADD GOOGLE EVENT] ', error);
 		if (error.code === 401 || error.response?.status === 401) {
 			return res.status(401).send({
 				result: false,
@@ -365,6 +365,66 @@ async function addGoogleEvent(req, res, next) {
 	}
 }
 
+async function removeEventFromGoogleCalendar(req, res, next) {
+	const { userId } = req._auth;
+	const { eventId } = req.body;
+	const { type: calendarName } = req.params;
+
+	try {
+		if (!eventId || !calendarName) {
+			return res.status(406).send({
+				result: false,
+				code: 406,
+				data: null,
+				message: 'No calendar data!'
+			});
+		}
+
+		const { googleToken } = req._googleToken;
+
+		if (!googleToken.access_token) {
+			await knex('users').where({ userId } ).update({ google_refresh : ''});
+			return res.status(401).send({
+				result: false,
+				code: 401,
+				data: null,
+				message: 'No token'
+			});
+		}
+
+		await oauth2Client.setCredentials(googleToken);
+
+		const calendar = google.calendar({ version: 'v3', auth: oauth2Client});
+
+		const calendarList = await calendar.calendarList.list();
+		const existingCalendar = calendarList.data.items.find(el => el.summary === calendarName);
+
+		if (!existingCalendar) {
+			return res.status(404).send({
+				result: false,
+				code: 404,
+				data: null,
+				message: `Calendar [${calendarName}] does not exist`
+			});
+		}
+
+		const result = await calendar.events.delete({
+			calendarId: existingCalendar.id,
+			eventId: eventId
+		})
+
+		return res.status(200).send({
+			result: true,
+			code: 200,
+			data: result.data,
+			message: `Deleted successfully`
+		});
+
+	} catch (error) {
+		console.error('Google calendar [REMOVE GOOGLE EVENT] ', error);
+	}
+}
+
 module.exports = {
 	signInUser,
 	signUpUser,
@@ -372,5 +432,6 @@ module.exports = {
 	checkIsTokenExpired,
 	getGoogleCalendar,
 	getGoogleCalendarEvents,
-	addGoogleEvent
+	addGoogleEvent,
+	removeEventFromGoogleCalendar
 }
