@@ -383,7 +383,7 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 		return res.status(200).send({
 			result: true,
 			code: 200,
-			data: result.data,
+			data: { id: eventId },
 			message: `Deleted successfully`
 		});
 
