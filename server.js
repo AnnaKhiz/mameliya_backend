@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { router: authRouter } = require('./routes/authRouter');
 const { router : mamaDataRouter } = require('./routes/mamaDataRouter');
+const { router: googleCalendarRouter } = require('./routes/googleRouter');
 const isProd = process.env.NODE_ENV === 'production';
 const express = require('express');
 const server = express();
@@ -28,3 +29,4 @@ server.use(express.urlencoded({ extended: true }));
 
 server.use('/user', authRouter);
 server.use('/user/mama', mamaDataRouter);
+server.use('/user/google', googleCalendarRouter);
