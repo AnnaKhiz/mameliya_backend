@@ -14,15 +14,20 @@ const {googleCalendarAuthMiddleware} = require("../middleware/googleCalendarAuth
 const { googleCalendarEventsMiddleware } = require("../middleware/googleCalendarEventsMiddleware");
 
 
-// GET
+// USER
 router.post('/register', signUpUser);
 router.post('/login', signInUser);
 router.get('/logout', logOutUser);
 router.get('/check-auth', parserJwt, checkIsTokenExpired);
+
+// GOOGLE CALENDAR
 router.get('/google/check', parserJwt, googleCalendarAuthMiddleware, getGoogleCalendar);
 router.get('/google/events/:type', parserJwt, googleCalendarEventsMiddleware, getGoogleCalendarEvents);
+
 router.post('/google/event/add/:type', parserJwt, googleCalendarEventsMiddleware, addGoogleEvent);
+
 router.patch('/google/event/update/:type/:eventId', parserJwt, googleCalendarEventsMiddleware, updateGoogleEvent);
+
 router.delete('/google/event/remove/:type/:eventId', parserJwt, googleCalendarEventsMiddleware, removeEventFromGoogleCalendar);
 
 module.exports = { router }

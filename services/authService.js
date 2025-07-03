@@ -274,18 +274,7 @@ async function addGoogleEvent(req, res, next) {
 		const calendar = await getGoogleCalendarObject(googleToken);
 		const existingCalendar = await checkExistingCalendar(calendar, calendarName);
 
-		const newEvent = {
-			summary: event.title,
-			description: event.contentFull,
-			start: {
-				dateTime: new Date(event.start).toISOString(),
-				timeZone: 'UTC',
-			},
-			end: {
-				dateTime: new Date(event.end).toISOString(),
-				timeZone: 'UTC',
-			}
-		}
+		const newEvent = adaptEventTypeForGoogleAPI(event);
 
 		if (!existingCalendar) {
 			const newCalendar = await calendar.calendars.insert({
@@ -334,7 +323,67 @@ async function addGoogleEvent(req, res, next) {
 }
 
 async function updateGoogleEvent(req, res, next) {
+	const { userId } = req._auth;
+	const { type: calendarName, eventId } = req.params;
+	const { body: updatedEvent } = req;
 
+	try {
+		if (!eventId || !calendarName) {
+			return res.status(406).send({
+				result: false,
+				code: 406,
+				data: null,
+				message: 'No calendar data!'
+			});
+		}
+
+		const { googleToken } = req._googleToken;
+		await checkGoogleToken(req, res, next, googleToken, userId);
+
+		const calendar = await getGoogleCalendarObject(googleToken);
+		const existingCalendar = await checkExistingCalendar(calendar, calendarName);
+
+		if (!existingCalendar) {
+			return res.status(404).send({
+				result: false,
+				code: 404,
+				data: null,
+				message: `Calendar [${calendarName}] does not exist`
+			});
+		}
+
+		const newUpdatedEvent = adaptEventTypeForGoogleAPI(updatedEvent);
+
+		const response = await calendar.events.patch({
+			calendarId: existingCalendar.id,
+			eventId,
+			requestBody: newUpdatedEvent
+		});
+
+		return res.status(200).send({
+			result: true,
+			code: 200,
+			data: response.data,
+			message: 'Updated successfully'
+		});
+
+	} catch (error) {
+		console.error('Google calendar [UPDATE GOOGLE EVENT] ', error);
+		if (error.code === 401 || error.response?.status === 401) {
+			return res.status(401).send({
+				result: false,
+				code: 401,
+				data: null,
+				message: 'Unauthorized or token expired'
+			});
+		}
+		return res.status(500).send({
+			result: false,
+			code: 500,
+			data: null,
+			message: 'Server error'
+		})
+	}
 }
 
 async function removeEventFromGoogleCalendar(req, res, next) {
@@ -415,6 +464,21 @@ async function createNewEventObject(calendar, existingCalendar, event) {
 		calendarId,
 		resource: event
 	});
+}
+
+function adaptEventTypeForGoogleAPI(event) {
+	return {
+		summary: event.title,
+		description: event.description,
+		start: {
+		dateTime: new Date(event.start).toISOString(),
+			timeZone: 'UTC',
+	},
+		end: {
+			dateTime: new Date(event.end).toISOString(),
+				timeZone: 'UTC',
+		}
+	}
 }
 
 
