@@ -333,6 +333,10 @@ async function addGoogleEvent(req, res, next) {
 	}
 }
 
+async function updateGoogleEvent(req, res, next) {
+
+}
+
 async function removeEventFromGoogleCalendar(req, res, next) {
 	const { userId } = req._auth;
 	const { type: calendarName, eventId } = req.params;
@@ -346,25 +350,11 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 				message: 'No calendar data!'
 			});
 		}
-
 		const { googleToken } = req._googleToken;
+		await checkGoogleToken(req, res, next, googleToken, userId);
 
-		if (!googleToken.access_token) {
-			await knex('users').where({ userId } ).update({ google_refresh : ''});
-			return res.status(401).send({
-				result: false,
-				code: 401,
-				data: null,
-				message: 'No token'
-			});
-		}
-
-		await oauth2Client.setCredentials(googleToken);
-
-		const calendar = google.calendar({ version: 'v3', auth: oauth2Client});
-
-		const calendarList = await calendar.calendarList.list();
-		const existingCalendar = calendarList.data.items.find(el => el.summary === calendarName);
+		const calendar = await getGoogleCalendarObject(googleToken);
+		const existingCalendar = await checkExistingCalendar(calendar, calendarName);
 
 		if (!existingCalendar) {
 			return res.status(404).send({
@@ -375,7 +365,7 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 			});
 		}
 
-		const result = await calendar.events.delete({
+		await calendar.events.delete({
 			calendarId: existingCalendar.id,
 			eventId: eventId
 		})
@@ -436,5 +426,6 @@ module.exports = {
 	getGoogleCalendar,
 	getGoogleCalendarEvents,
 	addGoogleEvent,
-	removeEventFromGoogleCalendar
+	removeEventFromGoogleCalendar,
+	updateGoogleEvent
 }
