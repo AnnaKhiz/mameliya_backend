@@ -2,6 +2,7 @@ const { oauth2Client } = require("./googleauthService");
 const { google } = require("googleapis");
 let knexLib = require('knex');
 const knexConfig = require('../knexfile.js');
+const {all} = require("express/lib/application");
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 
@@ -36,8 +37,37 @@ async function getGoogleCalendarEvents(req, res, next) {
 					data: { events: [] },
 					message: `Google calendar [${calendarName}] is empty`}
 				)}
+			console.log('existingCalendar', existingCalendar)
+			let eventsResponse;
+			const now = new Date().toISOString();
+			if (calendarName === 'all') {
+				const promises = existingCalendar.filter(cal => cal.accessRole === 'owner').map(e =>
+					calendar.events.list({
+						calendarId: e.id,
+						timeMin: now,
+						singleEvents: true,
+						orderBy: 'startTime',
+					}).then(result => ({ calendar: e.summary, events: result.data.items || [] }))
+				)
+				console.log('promises', promises)
 
-			const eventsResponse = await calendar.events.list({
+				const allEvents = await Promise.all(promises);
+				console.log('all events', allEvents)
+				eventsResponse = allEvents.flatMap(item => item.events.map(event => ({
+					...event,
+					calendarName: item.calendar
+				}))
+			)
+
+				return res.send({
+					result: true,
+					code: 200,
+					data: { events: eventsResponse },
+					message: 'Google calendar is available'
+				})
+			}
+
+			eventsResponse = await calendar.events.list({
 				calendarId: existingCalendar.id,
 				singleEvents: true,
 				orderBy: 'startTime',
@@ -65,7 +95,7 @@ async function addGoogleEvent(req, res, next) {
 			result: false,
 			code: 406,
 			data: null,
-			message: 'No event data!'
+			message: 'No calendar data!'
 		});
 	}
 
@@ -157,6 +187,11 @@ async function getGoogleCalendarObject(token) {
 }
 async function checkExistingCalendar(calendar, calendarName) {
 	const calendarList = await calendar.calendarList.list();
+
+	if (calendarName === 'all') {
+		return calendarList.data.items;
+	}
+
 	return calendarList.data.items.find(el => el.summary === calendarName);
 }
 async function createNewEventObject(calendar, existingCalendar, event) {
