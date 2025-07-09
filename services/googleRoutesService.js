@@ -105,6 +105,8 @@ async function addGoogleEvent(req, res, next) {
 
 		const result = await createNewEventObject(calendar, existingCalendar, newEvent);
 
+		result.data.calendarName = calendarName;
+
 		return res.status(200).send({
 			result: true,
 			code: 200,
@@ -131,6 +133,8 @@ async function updateGoogleEvent(req, res, next) {
 			requestBody: newEvent
 		});
 
+		response.data.calendarName = calendarName;
+
 		return res.status(200).send({
 			result: true,
 			code: 200,
@@ -143,6 +147,7 @@ async function updateGoogleEvent(req, res, next) {
 		requestErrorHandling(error, res);
 	}
 }
+
 async function removeEventFromGoogleCalendar(req, res, next) {
 	const { userId } = req._auth;
 	const { type: calendarName, eventId } = req.params;
