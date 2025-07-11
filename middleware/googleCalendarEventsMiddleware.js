@@ -7,19 +7,22 @@ const knex = knexLib(knexConfig[environment]);
 
 async function googleCalendarEventsMiddleware (req, res, next) {
 	const { userId } = req._auth;
+
 	try {
+		const { type: calendarName, redirect } = req.query;
+
 		const accessToken = req.cookies.googleToken;
 		const refreshToken = await getRefreshTokenFromDB(userId);
 
 		if (!accessToken) {
 			req._googleToken = { googleToken: {} };
-			// return res.redirect(getAuthUrl());
 			return next()
 		} else {
 			oauth2Client.setCredentials({
 				access_token: accessToken,
 				refresh_token: refreshToken
 			});
+			req._queryData = { calendarName, redirect };
 
 			const tokens = await oauth2Client.refreshAccessToken();
 			const credentials = tokens.credentials;
@@ -38,7 +41,6 @@ async function googleCalendarEventsMiddleware (req, res, next) {
 				next();
 			}
 		}
-
 
 	} catch (error) {
 		console.log('Error middleware [google calendar events] ', error);

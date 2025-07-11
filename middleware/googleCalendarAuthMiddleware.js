@@ -6,11 +6,18 @@ async function googleCalendarAuthMiddleware(req, res, next) {
 	const { googleToken } = req.cookies;
 
 	try {
+		const { type: calendarName, redirect } = req.query;
 
 		if (!googleToken && !code) {
-			const url = getAuthUrl();
+			const state = encodeURIComponent(JSON.stringify({ calendarName, redirect }))
+			const url = getAuthUrl(state);
 			return res.redirect(url);
 		}
+
+		const rawState = req.query.state;
+		let stateData = null;
+		stateData = JSON.parse(decodeURIComponent(rawState));
+		req._queryData = stateData;
 
 		if (code) {
 			const { tokens } = await oauth2Client.getToken(code);
