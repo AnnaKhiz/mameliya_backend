@@ -2,20 +2,37 @@ const { oauth2Client } = require("./googleauthService");
 const { google } = require("googleapis");
 let knexLib = require('knex');
 const knexConfig = require('../knexfile.js');
-const {all} = require("express/lib/application");
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 
 async function getGoogleCalendar(req, res, next) {
-	const { googleToken } = req._googleToken;
 	const { userId } = req._auth;
+	let redirectUrl = '';
 
-	if (googleToken ) {
-		await knex('users').where({ userId } ).update({ google_refresh : googleToken.refresh_token});
-		return res.redirect(`http://localhost:5173/user/${userId}/mama/beauty_calendar?status=success`);
+	try {
+		const { calendarName, redirect } = req._queryData;
+		const { googleToken } = req._googleToken;
+		if (googleToken ) {
+			await knex('users').where({ userId } ).update({ google_refresh : googleToken.refresh_token});
+
+			redirectUrl = calendarName === 'all'
+				? `${redirect}?status=success&modal=success`
+				: `http://localhost:5173/user/${userId}/mama/${calendarName}_calendar?status=success`;
+
+			return res.redirect(redirectUrl);
+		}
+		await knex('users').where({ userId } ).update({ google_refresh : ''});
+
+		redirectUrl = calendarName === 'all'
+			? `${redirect}?status=success`
+			: `http://localhost:5173/user/${userId}/mama/${calendarName}_calendar?status=bad_request`;
+
+		return res.redirect(redirectUrl);
+	} catch (error) {
+		console.log('Error [connecting google calendar]: ', error);
+		return res.redirect(`http://localhost:5173/user/${userId}/mama`);
 	}
-	await knex('users').where({ userId } ).update({ google_refresh : ''});
-	return res.redirect(`http://localhost:5173/user/${userId}/mama/beauty_calendar?status=bad_request`);
+
 }
 async function getGoogleCalendarEvents(req, res, next) {
 	const { userId } = req._auth;
