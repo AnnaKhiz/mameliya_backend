@@ -54,27 +54,27 @@ async function getGoogleCalendarEvents(req, res, next) {
 					data: { events: [] },
 					message: `Google calendar [${calendarName}] is empty`}
 				)}
-			console.log('existingCalendar', existingCalendar)
+
 			let eventsResponse;
-			const now = new Date().toISOString();
+
 			if (calendarName === 'all') {
 				const promises = existingCalendar.filter(cal => cal.accessRole === 'owner').map(e =>
 					calendar.events.list({
 						calendarId: e.id,
-						timeMin: now,
+						timeMin: new Date('2000-01-01').toISOString(),
 						singleEvents: true,
 						orderBy: 'startTime',
 					}).then(result => ({ calendar: e.summary, events: result.data.items || [] }))
 				)
-				console.log('promises', promises)
 
 				const allEvents = await Promise.all(promises);
-				console.log('all events', allEvents)
-				eventsResponse = allEvents.flatMap(item => item.events.map(event => ({
+
+				eventsResponse = allEvents
+					.flatMap(item => item.events.map(event => ({
 					...event,
 					calendarName: item.calendar
-				}))
-			)
+					})))
+					.filter(e => e.calendarName === 'beauty' || e.calendarName === 'family' || e.calendarName === 'general' )
 
 				return res.send({
 					result: true,
