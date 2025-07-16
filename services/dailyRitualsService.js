@@ -13,8 +13,19 @@ async function addRitual(req, res, next) {
 	console.log('ritual', ritual)
 	console.log('section', section)
 
+
+	const newRitual = {
+		...ritual,
+		id: uuidv4(),
+		created_at: Date.now(),
+		creator: 'Admin'
+	}
+
 	try {
-		res.send({ result: true, code: 200, data: [], message: 'Added successfully'})
+		await knex('daily_rituals').insert(newRitual);
+		const result = await knex('daily_rituals').where({ id: newRitual.id }).first();
+
+			res.send({ result: true, code: 200, data: result, message: 'Added successfully'})
 	} catch (error) {
 		console.log('Error [ADD RITUAL]', error);
 		res.send({ result: false, code: 500, data: [], message: 'Ritual did not added'})
