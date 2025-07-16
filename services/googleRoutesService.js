@@ -8,16 +8,16 @@ const knex = knexLib(knexConfig[environment]);
 async function getGoogleCalendar(req, res, next) {
 	const { userId } = req._auth;
 	let redirectUrl = '';
-
+	const { calendarName, redirect } = req._queryData;
 	try {
-		const { calendarName, redirect } = req._queryData;
+
 		const { googleToken } = req._googleToken;
 		if (googleToken ) {
 			await knex('users').where({ userId } ).update({ google_refresh : googleToken.refresh_token});
 
 			redirectUrl = calendarName === 'all'
 				? `${redirect}?status=success&modal=success`
-				: `http://localhost:5173/user/${userId}/mama/${calendarName}_calendar?status=success`;
+				: `http://localhost:5173/user/${userId}/${calendarName}/${calendarName}_calendar?status=success`;
 
 			return res.redirect(redirectUrl);
 		}
@@ -25,12 +25,12 @@ async function getGoogleCalendar(req, res, next) {
 
 		redirectUrl = calendarName === 'all'
 			? `${redirect}?status=success`
-			: `http://localhost:5173/user/${userId}/mama/${calendarName}_calendar?status=bad_request`;
+			: `http://localhost:5173/user/${userId}/${calendarName}/${calendarName}_calendar?status=bad_request`;
 
 		return res.redirect(redirectUrl);
 	} catch (error) {
 		console.log('Error [connecting google calendar]: ', error);
-		return res.redirect(`http://localhost:5173/user/${userId}/mama`);
+		return res.redirect(`http://localhost:5173/user/${userId}/${calendarName}`);
 	}
 
 }
