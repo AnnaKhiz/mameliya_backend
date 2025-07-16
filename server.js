@@ -31,4 +31,4 @@ server.use(express.urlencoded({ extended: true }));
 server.use('/user', authRouter);
 server.use('/user/mama', mamaDataRouter);
 server.use('/user/google', googleCalendarRouter);
-server.use('user/rituals', dailyRitualsRouter);
+server.use('/user/rituals', dailyRitualsRouter);
