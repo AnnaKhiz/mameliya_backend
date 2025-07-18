@@ -110,8 +110,33 @@ async function addToMyRituals(req, res, next) {
 	}
 }
 
+async function getFavoriteRituals(req, res, next) {
+	const { userId } = req._auth;
+
+	try {
+		const result = await knex('daily_rituals as r')
+			.leftJoin('favorite_rituals as fav', 'r.id', 'fav.ritual_id')
+			.where('fav.user_id', userId)
+			.select(
+				'r.id',
+				'r.title',
+				'r.description',
+				'r.creator',
+				'r.created_at',
+				'r.cosmetic_name',
+			);
+
+
+		res.send({ result: true, code: 200, data: result, message: 'Get from fav successfully'});
+	} catch (error) {
+		console.log('Error [GET FAVORITE LIST]', error);
+		res.send({ result: false, code: 500, data: [], message: 'Did not find'});
+	}
+}
+
 module.exports = {
 	addRitual,
 	getRitualsBySection,
-	addToMyRituals
+	addToMyRituals,
+	getFavoriteRituals
 }
