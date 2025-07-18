@@ -49,6 +49,31 @@ async function addRitual(req, res, next) {
 
 }
 
+async function getRitualsBySection(req, res, next) {
+	const { section } = req.params;
+
+	try {
+		const result = await knex('daily_rituals as r')
+			.leftJoin('ritual_sections as rs', 'r.id', 'rs.ritual_id')
+			.where('rs.section_key', section)
+			.select(
+				'r.id',
+				'r.title',
+				'r.description',
+				'r.creator',
+				'r.created_at',
+				'r.cosmetic_name',
+				'rs.section_key'
+			);
+
+		res.send({ result: true, code: 200, data: result, message: 'Done successfully'});
+	} catch (error) {
+		console.log('Error [GET RITUALS BY SECTION]', error);
+		res.send({ result: false, code: 500, data: [], message: 'Rituals did not find'});
+	}
+}
+
 module.exports = {
-	addRitual
+	addRitual,
+	getRitualsBySection
 }
