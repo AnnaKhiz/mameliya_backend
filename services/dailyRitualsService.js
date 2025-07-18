@@ -73,7 +73,45 @@ async function getRitualsBySection(req, res, next) {
 	}
 }
 
+async function addToMyRituals(req, res, next) {
+	const { userId } = req._auth;
+	const { body: rituals } = req;
+
+	try {
+		const promises = rituals.map( (ritual) => {
+			const newRitual = {
+				user_id: userId,
+				ritual_id: ritual.id
+			}
+			return knex('favorite_rituals').insert(newRitual)
+		})
+
+		await Promise.all(promises);
+
+		const favorites = await knex('daily_rituals as r')
+				.leftJoin('favorite_rituals as fav', 'r.id', 'fav.ritual_id')
+				.where('fav.user_id', userId)
+				.select(
+					'r.id',
+					'r.title',
+					'r.description',
+					'r.creator',
+					'r.created_at',
+					'r.cosmetic_name',
+					'fav.user_id'
+				);
+
+		const result = await Promise.all(favorites);
+
+		res.send({ result: true, code: 200, data: result, message: 'Add to fav successfully'});
+	} catch (error) {
+		console.log('Error [ADD FAVORITE]', error);
+		res.send({ result: false, code: 500, data: [], message: 'Did not add'});
+	}
+}
+
 module.exports = {
 	addRitual,
-	getRitualsBySection
+	getRitualsBySection,
+	addToMyRituals
 }
