@@ -5,7 +5,7 @@ const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
 
 async function addRitual(req, res, next) {
-	// const { userId } = req._auth;
+	const { userId } = req._auth;
 	const { body: ritual } = req;
 
 	const ritualId = uuidv4();
@@ -16,7 +16,7 @@ async function addRitual(req, res, next) {
 		description: ritual.description,
 		created_at: Date.now(),
 		cosmetic_name: JSON.stringify(ritual.cosmetic_name),
-		creator: 'Admin'
+		creator: userId ? userId :'Admin'
 	}
 
 	const sectionInserts = ritual.section_key.map(section => ({
@@ -27,6 +27,7 @@ async function addRitual(req, res, next) {
 	try {
 		await knex('daily_rituals').insert(newRitual);
 		await knex('ritual_sections').insert(sectionInserts);
+		await knex('favorite_rituals').insert({ user_id: userId, ritual_id: ritualId })
 
 		const result = await knex('daily_rituals as r')
 			.leftJoin('ritual_sections as rs', 'r.id', 'rs.ritual_id')
