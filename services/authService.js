@@ -152,6 +152,60 @@ async function checkIsTokenExpired(req, res, next) {
 	}
 }
 
+async function checkIsPasswordCorrect(req, res, next) {
+	const { userId } = req._auth;
+	const { password } = req.body;
+
+	try {
+		if (!password) {
+			return res.status(400).send({
+				result: false,
+				data: null,
+				code: 400,
+				message: 'Empty field'
+			})
+		}
+
+		const user = await knex('users').where({ userId }).first();
+
+		if (!user) {
+			return res.status(400).send({
+				result: false,
+				data: null,
+				code: 400,
+				message: 'No user'
+			})
+		}
+		const isPasswordEqual = await checkPass(password, user.password);
+
+		if (!isPasswordEqual) {
+			return res.status(400).send({
+				result: false,
+				data: null,
+				code: 400,
+				message: 'Wrong password'
+			})
+		}
+
+		return res.status(200).send({
+			result: true,
+			data: [],
+			code: 200,
+			message: 'Password correct'
+		});
+
+
+	} catch (error) {
+		console.log('Error [CHECK PASS]: ', error);
+		return res.status(500).send({
+			result: false,
+			data: null,
+			code: 500,
+			message: 'Request [CHECK PASS] error'
+		})
+	}
+}
+
 // HELPERS
 function setCookie(res, token) {
 	res.cookie('token', token, {
@@ -190,4 +244,5 @@ module.exports = {
 	signUpUser,
 	logOutUser,
 	checkIsTokenExpired,
+	checkIsPasswordCorrect
 }

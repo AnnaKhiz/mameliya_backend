@@ -5,6 +5,7 @@ const cors = require('cors');
 const { router: authRouter } = require('./routes/authRouter');
 const { router : mamaDataRouter } = require('./routes/mamaDataRouter');
 const { router: googleCalendarRouter } = require('./routes/googleRouter');
+const { router: userRouter } = require('./routes/userRouter');
 const isProd = process.env.NODE_ENV === 'production';
 const express = require('express');
 const server = express();
@@ -28,5 +29,6 @@ server.use(jsonBodyParser);
 server.use(express.urlencoded({ extended: true }));
 
 server.use('/user', authRouter);
+server.use('/user/data', userRouter);
 server.use('/user/mama', mamaDataRouter);
 server.use('/user/google', googleCalendarRouter);
