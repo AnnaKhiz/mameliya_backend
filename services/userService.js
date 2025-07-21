@@ -17,8 +17,19 @@ async function updateUserInfo(req, res, next) {
 	}
 
 	try {
-		const result = await knex('users').where({ userId }).update(userData);
-		res.send({ result: true, code: 200, data: result, message: 'Updated successfully'});
+		await knex('users').where({ userId }).update(userData);
+		const user = await knex('users')
+			.leftJoin('mama_about', 'users.userId', 'mama_about.userId')
+			.select('users.*',
+				'mama_about.mood as mama_mood',
+				'mama_about.hasRituals as mama_hasRituals',
+				'mama_about.isTimerUsed as mama_isTimerUsed',
+				'mama_about.timer as mama_timer')
+			.where('users.userId', userId )
+			.first();
+
+		delete user.password;
+		res.send({ result: true, code: 200, data: user, message: 'Updated successfully'});
 	} catch (error) {
 		console.log('Error [UPDATE USER] :', error);
 		res.send({ result: false, code: 500, data: [], message: 'Updated successfully'});
