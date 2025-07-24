@@ -68,11 +68,13 @@ async function getGoogleCalendarEvents(req, res, next) {
 				)
 
 				const allEvents = await Promise.all(promises);
-				eventsResponse = allEvents.flatMap(item => item.events.map(event => ({
+
+				eventsResponse = allEvents
+					.flatMap(item => item.events.map(event => ({
 					...event,
 					calendarName: item.calendar
-				}))
-			)
+					})))
+					.filter(e => e.calendarName === 'beauty' || e.calendarName === 'family' || e.calendarName === 'general' )
 
 				return res.send({
 					result: true,
