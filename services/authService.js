@@ -24,7 +24,7 @@ async function signUpUser(req, res, next) {
 	try {
 		const result = await knex('users').insert(user).returning('*');
 		const mamaInfo = {
-			mood: 'good',
+			mood: 'happy',
 			hasRituals: false,
 			isTimerUsed: false,
 			timer: 5,
