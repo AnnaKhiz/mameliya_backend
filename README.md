@@ -29,13 +29,19 @@ The project is in progress and description will grow according to developing app
 ## How to install and run the project
 
 Use this command from the root of frontend folder
+
 **FRONTEND PART**
+
 **npm install**
+
 **npm run dev**
 
 Use this command from the root of backend folder
+
 **BACKEND PART**
+
 **npm install**
+
 **npm run server**
 
 Project must be started at the address: http://localhost:5173/
