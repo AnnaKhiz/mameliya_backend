@@ -151,6 +151,26 @@ async function getDiaryPostsList(req, res, next) {
 	}
 }
 
+async function removeDiaryPostById(req, res, next) {
+	const { userId } = req._auth;
+	const { id: postId } = req.params;
+
+	try {
+		await knex('mama_diary').where( { id : postId }).del();
+
+		const posts = await knex('mama_diary').where( { creator : userId });
+
+		if (!posts) {
+			return res.status(403).send({ result: true, message: 'No posts found', data: []});
+		}
+		return res.status(200).send({ result: true, message: 'Removed successfully', data: posts});
+
+	} catch (error) {
+		console.error('Error [remove diary post]: ', error);
+		return res.status(500).send({ result: false, message: 'Post did not delete', data: null});
+	}
+}
+
 
 module.exports = {
 	updateMamaMood,
@@ -158,5 +178,6 @@ module.exports = {
 	saveMoodDetails,
 	getUsersMoodHistory,
 	addDiaryPost,
-	getDiaryPostsList
+	getDiaryPostsList,
+	removeDiaryPostById
 }
