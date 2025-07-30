@@ -5,12 +5,14 @@ const {
 	getMamaInfo,
 	saveMoodDetails,
 	getUsersMoodHistory,
+	addDiaryPost
 } = require('../services/mamaDataService');
 
 router.get('/info', parserJwt, getMamaInfo);
+router.get('/mood/get', parserJwt, getUsersMoodHistory);
 router.post('/mood', parserJwt, updateMamaMood);
 router.post('/mood/add', parserJwt, saveMoodDetails);
-router.get('/mood/get', parserJwt, getUsersMoodHistory);
+router.post('/diary/add', parserJwt, addDiaryPost)
 
 
 module.exports = { router }
