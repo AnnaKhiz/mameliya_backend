@@ -134,11 +134,29 @@ async function addDiaryPost(req, res, next) {
 	}
 }
 
+async function getDiaryPostsList(req, res, next) {
+	const { userId } = req._auth;
+
+	try {
+		const posts = await knex('mama_diary').where( { creator : userId });
+
+		if (!posts) {
+			return res.status(403).send({ result: true, message: 'No posts found', data: []});
+		}
+		return res.status(200).send({ result: true, message: 'Got successfully', data: posts});
+
+	} catch (error) {
+		console.error('Error [get diary posts]: ', error);
+		return res.status(500).send({ result: false, message: 'Post did not get posts', data: null});
+	}
+}
+
 
 module.exports = {
 	updateMamaMood,
 	getMamaInfo,
 	saveMoodDetails,
 	getUsersMoodHistory,
-	addDiaryPost
+	addDiaryPost,
+	getDiaryPostsList
 }
