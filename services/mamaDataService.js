@@ -5,6 +5,8 @@ const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 const { getTokens } = require('../services/googleauthService');
 const isProd = process.env.NODE_ENV === 'production';
+const { groupByPrefixes } = require('../utils/groupByPrefixes');
+const { v4 : uuidv4 } = require('uuid');
 
 async function updateMamaMood(req, res, next) {
 	const { mood } = req.body;
@@ -109,6 +111,65 @@ async function getUsersMoodHistory(req, res, next) {
 	}
 }
 
+async function addDiaryPost(req, res, next) {
+	const { userId } = req._auth;
+	const { body: diaryPost } = req;
+
+	const newDiaryPost = {
+		...diaryPost,
+		id: uuidv4(),
+		creator: userId,
+		created_at: Date.now()
+	}
+
+	try {
+		await knex('mama_diary').insert(newDiaryPost);
+
+		const diaryNotes = await knex('mama_diary').where({ id: newDiaryPost.id });
+
+		return res.status(200).send({ result: true, message: 'Post added', data: diaryNotes});
+	} catch (error) {
+		console.error('Error [add new diary post]: ', error);
+		return res.status(500).send({ result: false, message: 'Post did not added', data: null});
+	}
+}
+
+async function getDiaryPostsList(req, res, next) {
+	const { userId } = req._auth;
+
+	try {
+		const posts = await knex('mama_diary').where( { creator : userId });
+
+		if (!posts) {
+			return res.status(403).send({ result: true, message: 'No posts found', data: []});
+		}
+		return res.status(200).send({ result: true, message: 'Got successfully', data: posts});
+
+	} catch (error) {
+		console.error('Error [get diary posts]: ', error);
+		return res.status(500).send({ result: false, message: 'Post did not get posts', data: null});
+	}
+}
+
+async function removeDiaryPostById(req, res, next) {
+	const { userId } = req._auth;
+	const { id: postId } = req.params;
+
+	try {
+		await knex('mama_diary').where( { id : postId }).del();
+
+		const posts = await knex('mama_diary').where( { creator : userId });
+
+		if (!posts) {
+			return res.status(403).send({ result: true, message: 'No posts found', data: []});
+		}
+		return res.status(200).send({ result: true, message: 'Removed successfully', data: posts});
+
+	} catch (error) {
+		console.error('Error [remove diary post]: ', error);
+		return res.status(500).send({ result: false, message: 'Post did not delete', data: null});
+	}
+}
 
 
 module.exports = {
@@ -116,4 +177,7 @@ module.exports = {
 	getMamaInfo,
 	saveMoodDetails,
 	getUsersMoodHistory,
+	addDiaryPost,
+	getDiaryPostsList,
+	removeDiaryPostById
 }

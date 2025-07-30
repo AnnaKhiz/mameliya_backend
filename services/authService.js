@@ -5,6 +5,7 @@ const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
 const { generateJWt, hashPass, checkPass } = require('../utils/authEncoding');
 const isProd = process.env.NODE_ENV === 'production';
+const { groupByPrefixes } = require('../utils/groupByPrefixes');
 async function signUpUser(req, res, next) {
 	const { body: user } = req;
 
@@ -109,7 +110,7 @@ async function signInUser(req, res, next) {
 
 		return res.status(200).send({
 			result: true,
-			data: groupByPrefix('mama', user),
+			data: groupByPrefixes(['mama'], user),
 			code: 200,
 			message: 'Successful'
 		});
@@ -135,16 +136,22 @@ async function checkIsTokenExpired(req, res, next) {
 	try {
 		const user = await knex('users')
 			.leftJoin('mama_about', 'users.userId', 'mama_about.userId')
+			.leftJoin('mama_diary', 'users.userId', 'mama_diary.created_at')
 			.select('users.*',
 				'mama_about.mood as mama_mood',
 				'mama_about.hasRituals as mama_hasRituals',
 				'mama_about.isTimerUsed as mama_isTimerUsed',
-				'mama_about.timer as mama_timer')
+				'mama_about.timer as mama_timer',
+				'mama_diary.title as diary_title',
+				'mama_diary.description as diary_description',
+				'mama_diary.created_at as diary_created_at'
+				)
 			.where('users.userId', userId )
 			.first();
 
 		delete user.password;
-		return res.status(200).send({ result: true, message: 'User authorized', data: groupByPrefix('mama', user)});
+
+		return res.status(200).send({ result: true, message: 'User authorized', data: groupByPrefixes(['mama', 'diary'], user) });
 	} catch(error) {
 		console.log('Error [checkIsTokenExpired]:', error);
 		clearCookie(res);
@@ -224,20 +231,7 @@ function clearCookie(res) {
 		path: '/user',
 	});
 }
-function groupByPrefix(prefix, obj) {
-	const related = {};
-	const general = {};
-	for (const [key, value] of Object.entries(obj)) {
-		if (key.startsWith(`${prefix}_`)) {
-			const cleanKey = key.replace(`${prefix}_`, '');
-			related[cleanKey] = value;
-		} else {
-			general[key] = value;
-		}
-	}
-	general[prefix] = related;
-	return general;
-}
+
 
 module.exports = {
 	signInUser,
