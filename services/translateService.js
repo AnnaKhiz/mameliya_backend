@@ -4,12 +4,19 @@ const { deepLAPIKey } = require('../config/default');
 const translator = new deepl.Translator(deepLAPIKey);
 
 async function translateText(req, res, next) {
-	const { text, langResult, langSource } = req.body;
+	const {
+		description,
+		title,
+		langResult,
+		langSource,
+		tagHandling
+	} = req.body;
 
 	try {
-		const result = await translator.translateText(text, langSource, langResult);
+		const resultDescription = await translator.translateText(description, langSource || null, langResult, { tagHandling });
+		const resultTitle = await translator.translateText(title, langSource || null, langResult, { tagHandling });
 
-		if (!result.text) {
+		if (!resultDescription.text || !resultTitle.text) {
 			return res.status(403).send({
 				result: false,
 				data: null,
@@ -20,7 +27,7 @@ async function translateText(req, res, next) {
 
 		return res.status(200).send({
 			result: true,
-			data: result.text,
+			data: { title: resultTitle.text, description: resultDescription.text },
 			code: 200,
 			message: 'Successfully'
 		});
