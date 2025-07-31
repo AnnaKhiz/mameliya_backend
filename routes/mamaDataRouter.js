@@ -7,7 +7,8 @@ const {
 	getUsersMoodHistory,
 	addDiaryPost,
 	getDiaryPostsList,
-	removeDiaryPostById
+	removeDiaryPostById,
+	updateDiaryPost
 } = require('../services/mamaDataService');
 
 router.get('/info', parserJwt, getMamaInfo);
@@ -17,6 +18,7 @@ router.post('/mood/add', parserJwt, saveMoodDetails);
 router.get('/diary', parserJwt, getDiaryPostsList);
 router.post('/diary/add', parserJwt, addDiaryPost);
 router.delete('/diary/remove/:id', parserJwt, removeDiaryPostById);
+router.patch('/diary/update/:id', parserJwt, updateDiaryPost);
 
 
 

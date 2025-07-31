@@ -171,6 +171,33 @@ async function removeDiaryPostById(req, res, next) {
 	}
 }
 
+async function updateDiaryPost(req, res, next) {
+	const { userId } = req._auth;
+	const { id: postId } = req.params;
+	const { body: post } = req;
+
+	const updatedPost = {
+		...post,
+		created_at: Date.now(),
+	}
+
+	try {
+		await knex('mama_diary').where({ id: postId }).update(updatedPost);
+
+		const posts = await knex('mama_diary').where( { creator : userId });
+
+		if (!posts) {
+			return res.status(403).send({ result: true, message: 'No posts found', data: []});
+		}
+		return res.status(200).send({ result: true, message: 'Removed successfully', data: posts});
+
+	} catch (error) {
+		console.error('Error [update diary post]: ', error);
+		return res.status(500).send({ result: false, message: 'Post did not updated', data: null});
+	}
+
+}
+
 
 module.exports = {
 	updateMamaMood,
@@ -179,5 +206,6 @@ module.exports = {
 	getUsersMoodHistory,
 	addDiaryPost,
 	getDiaryPostsList,
-	removeDiaryPostById
+	removeDiaryPostById,
+	updateDiaryPost
 }
