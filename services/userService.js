@@ -8,10 +8,11 @@ const {  hashPass, checkPass } = require('../utils/authEncoding');
 async function updateUserInfo(req, res, next) {
 	const { userId } = req._auth;
 	const { body: userData } = req;
-	const photo = req.processedFileUrl;
-	if (!photo) return;
 
-	userData.photo = photo;
+	const photo = req.processedFileUrl;
+	if (photo) {
+		userData.photo = photo;
+	}
 
 	const { password } = userData;
 
