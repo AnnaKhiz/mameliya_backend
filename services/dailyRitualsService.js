@@ -3,6 +3,10 @@ const knexConfig = require('../knexfile.js');
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
+const deepl = require('deepl-node');
+const { deepLAPIKey } = require('../config/default');
+
+const translator = new deepl.Translator(deepLAPIKey);
 
 async function addRitual(req, res, next) {
 	const { userId } = req._auth;
@@ -10,13 +14,14 @@ async function addRitual(req, res, next) {
 
 	const ritualId = uuidv4();
 
+
 	const newRitual = {
 		id: ritualId,
 		title: ritual.title,
 		description: ritual.description,
 		created_at: Date.now(),
 		cosmetic_name: JSON.stringify(ritual.cosmetic_name),
-		creator: userId ? userId :'Admin'
+		creator: userId ? userId :'Admin',
 	}
 
 	const sectionInserts = ritual.section_key.map(section => ({
@@ -25,7 +30,14 @@ async function addRitual(req, res, next) {
 	}))
 
 	try {
-		await knex('daily_rituals').insert(newRitual);
+		const textLanguage = await translator.translateText(newRitual.title, null, 'en-US', { tagHandling: 'html' });
+
+		const newRitualWithLanguage = {
+			...newRitual,
+			lang: textLanguage.detectedSourceLang
+		}
+
+		await knex('daily_rituals').insert(newRitualWithLanguage);
 		await knex('ritual_sections').insert(sectionInserts);
 		await knex('favorite_rituals').insert({ user_id: userId, ritual_id: ritualId })
 
@@ -39,6 +51,7 @@ async function addRitual(req, res, next) {
 				'r.creator',
 				'r.created_at',
 				'r.cosmetic_name',
+				'r.lang',
 				'rs.section_key'
 			);
 
@@ -64,6 +77,7 @@ async function getRitualsBySection(req, res, next) {
 				'r.creator',
 				'r.created_at',
 				'r.cosmetic_name',
+				'r.lang',
 				'rs.section_key'
 			);
 
@@ -113,6 +127,7 @@ async function addToMyRituals(req, res, next) {
 					'r.creator',
 					'r.created_at',
 					'r.cosmetic_name',
+					'r.lang',
 					'fav.user_id'
 				);
 
@@ -142,6 +157,7 @@ async function getFavoriteRituals(req, res, next) {
 				'r.description',
 				'r.creator',
 				'r.created_at',
+				'r.lang',
 				'r.cosmetic_name',
 			);
 
@@ -189,6 +205,7 @@ async function removeRituals(req, res, next) {
 				'r.description',
 				'r.creator',
 				'r.created_at',
+				'r.lang',
 				'r.cosmetic_name',
 			);
 
