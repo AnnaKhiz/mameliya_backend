@@ -13,6 +13,7 @@ The project is in progress and description will grow according to developing app
 - Firebase Cloud Storage (for saving and uploading user's avatar)
 - uuid
 - sharp (for converting images)
+- DeepL API - text translate
 
 
 **Frontend**
