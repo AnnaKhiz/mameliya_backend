@@ -1,5 +1,6 @@
 const { oauth2Client, getAuthUrl, getTokens } = require('../services/googleauthService');
 const isProd = process.env.NODE_ENV === 'production';
+const logger = require('../utils/logger')('google-calendar-auth-middleware');
 
 async function googleCalendarAuthMiddleware(req, res, next) {
 	const code = req.query.code;
@@ -23,6 +24,7 @@ async function googleCalendarAuthMiddleware(req, res, next) {
 			const { tokens } = await oauth2Client.getToken(code);
 			oauth2Client.setCredentials(tokens);
 
+			logger.info(`${req.method} ${req.url} SET COOKIES - googleToken`);
 			res.cookie('googleToken', tokens.access_token, {
 				httpOnly: true,
 				secure: isProd,
@@ -36,11 +38,13 @@ async function googleCalendarAuthMiddleware(req, res, next) {
 			return next();
 		}
 
+		logger.info(`${req.method} ${req.url} 200 added object _googleToken`);
 		req._googleToken = { googleToken: googleToken };
 		next();
 
 	} catch (error) {
-		console.log('Error [google auth middleware]: ', error)
+		console.log('Error [google auth middleware]: ', error);
+		logger.info(`[${req.method}] ${req.url} 500 Error message: ${error}`);
 		return res.status(500).send({
 			result: false,
 			code: 500,

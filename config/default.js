@@ -8,5 +8,5 @@ module.exports = {
 	googleRedirectUrl: process.env.GOOGLE_REDIRECT_URL,
 	firebaseServiceAccount: process.env.FIREBASE_SERVICE_ACCOUNT,
 	firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-	deepLAPIKey: process.env.DEEPL_API_KEY
+	deepLAPIKey: process.env.DEEPL_API_KEY,
 }

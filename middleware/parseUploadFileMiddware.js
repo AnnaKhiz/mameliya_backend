@@ -1,6 +1,6 @@
 const multer = require('multer');
 const sharp = require('sharp');
-
+const logger = require('../utils/logger')('parse-upload-file-middleware');
 const { bucket } = require('../utils/firebaseConfigSDK');
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -25,11 +25,12 @@ async function fileProcessingMiddleware(req, res, next) {
 		});
 		await file.makePublic();
 		req.processedFileUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-
+		logger.info(`${req.method} ${req.url} 200 processedFileUrl=${req.processedFileUrl}`);
 		next();
-	} catch (err) {
-		console.log('Error [file processing middleware', err)
-		next(err);
+	} catch (error) {
+		console.log('Error [file processing middleware', error);
+		logger.info(`[${req.method}] ${req.url} 500 Error message: ${error}`);
+		next(error);
 	}
 }
 

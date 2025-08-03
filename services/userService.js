@@ -3,8 +3,8 @@ const knexConfig = require('../knexfile.js');
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
-const {  hashPass, checkPass } = require('../utils/authEncoding');
-
+const {  hashPass } = require('../utils/authEncoding');
+const logger = require('../utils/logger')('auth-user');
 async function updateUserInfo(req, res, next) {
 	const { userId } = req._auth;
 	const { body: userData } = req;
@@ -33,9 +33,12 @@ async function updateUserInfo(req, res, next) {
 			.first();
 
 		delete user.password;
+
+		logger.info(`${req.method} ${req.url} 200 User info was updated successfully`);
 		res.send({ result: true, code: 200, data: user, message: 'Updated successfully'});
 	} catch (error) {
 		console.log('Error [UPDATE USER] :', error);
+		logger.info(`[${req.method}] ${req.url} 500 Error message: ${error}`);
 		res.send({ result: false, code: 500, data: [], message: 'Updated successfully'});
 	}
 }
