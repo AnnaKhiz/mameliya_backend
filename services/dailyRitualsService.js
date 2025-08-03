@@ -5,7 +5,7 @@ const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
 const deepl = require('deepl-node');
 const { deepLAPIKey } = require('../config/default');
-
+const logger = require('../utils/logger')('daily-rituals');
 const translator = new deepl.Translator(deepLAPIKey);
 
 async function addRitual(req, res, next) {
@@ -14,14 +14,13 @@ async function addRitual(req, res, next) {
 
 	const ritualId = uuidv4();
 
-
 	const newRitual = {
 		id: ritualId,
 		title: ritual.title,
 		description: ritual.description,
 		created_at: Date.now(),
 		cosmetic_name: JSON.stringify(ritual.cosmetic_name),
-		creator: userId ? userId :'Admin',
+		creator: userId ? userId : 'Admin',
 	}
 
 	const sectionInserts = ritual.section_key.map(section => ({
@@ -55,14 +54,15 @@ async function addRitual(req, res, next) {
 				'rs.section_key'
 			);
 
+		logger.info(`${req.method} ${req.url} 200 Added new ritual`);
 		res.send({ result: true, code: 200, data: result, message: 'Added successfully'});
 	} catch (error) {
 		console.log('Error [ADD RITUAL]', error);
+		logger.info(`${req.method} ${req.url} 500 Error message: ${error}`);
 		res.send({ result: false, code: 500, data: [], message: 'Ritual did not added'});
 	}
 
 }
-
 async function getRitualsBySection(req, res, next) {
 	const { section } = req.params;
 
@@ -81,13 +81,14 @@ async function getRitualsBySection(req, res, next) {
 				'rs.section_key'
 			);
 
+		logger.info(`${req.method} ${req.url} 200 Get rituals list by section [${section}]`);
 		res.send({ result: true, code: 200, data: result, message: 'Done successfully'});
 	} catch (error) {
 		console.log('Error [GET RITUALS BY SECTION]', error);
+		logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
 		res.send({ result: false, code: 500, data: [], message: 'Rituals did not find'});
 	}
 }
-
 async function addToMyRituals(req, res, next) {
 	const { userId } = req._auth;
 	const { body: rituals } = req;
@@ -103,6 +104,7 @@ async function addToMyRituals(req, res, next) {
 		const newFavorites = rituals.filter(ritual => !existingIds.has(ritual.id));
 
 		if (newFavorites.length === 0) {
+			logger.info(`${req.method} ${req.url} 200 Duplicate ritual to favorites list`);
 			return res.status(200).send({
 				result: false,
 				code: 204,
@@ -133,17 +135,19 @@ async function addToMyRituals(req, res, next) {
 
 		const result = await Promise.all(favorites);
 
+		logger.info(`${req.method} ${req.url} 200 Ritual has been added to favorites successfully!`);
 		res.send({ result: true, code: 200, data: result, message: 'Add to fav successfully'});
 	} catch (error) {
 		console.log('Error [ADD FAVORITE]', error);
 		if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+			logger.info(`${req.method} ${req.url} 409 Conflict! Duplicate ritual to favorites list`);
 			return res.send({ result: false, code: 409, data: [], message: 'Conflict, data already exist'});
 		} else {
+			logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
 			res.send({ result: false, code: 500, data: [], message: 'Did not add'});
 		}
 	}
 }
-
 async function getFavoriteRituals(req, res, next) {
 	const { userId } = req._auth;
 
@@ -161,14 +165,14 @@ async function getFavoriteRituals(req, res, next) {
 				'r.cosmetic_name',
 			);
 
-
+		logger.info(`${req.method} ${req.url} 200 Get list of My rituals - successfully`);
 		res.send({ result: true, code: 200, data: result, message: 'Get from fav successfully'});
 	} catch (error) {
 		console.log('Error [GET FAVORITE LIST]', error);
+		logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
 		res.send({ result: false, code: 500, data: [], message: 'Did not find'});
 	}
 }
-
 async function removeRituals(req, res, next) {
 	const { userId } = req._auth;
 	const { body: rituals } = req;
@@ -209,11 +213,12 @@ async function removeRituals(req, res, next) {
 				'r.cosmetic_name',
 			);
 
-
+		logger.info(`${req.method} ${req.url} 200 ritual was removed from favorites successfully!`);
 		res.send({ result: true, code: 200, data: result, message: 'Get from fav successfully'});
 
 	} catch (error) {
 		console.log('Error [REMOVE FAVORITE]', error);
+		logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
 		res.send({ result: false, code: 500, data: [], message: 'Did not remove'});
 	}
 }
