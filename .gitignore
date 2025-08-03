@@ -3,3 +3,4 @@
 .idea
 database
 migrations
+/logs/

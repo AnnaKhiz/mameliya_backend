@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { port } = require('config');
+const logger = require('./utils/logger')('server');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { router: authRouter } = require('./routes/authRouter');
@@ -24,7 +25,9 @@ server.listen(port, (req, res) => {
 		res.send({ result: true, message: 'server started'})
 	})
 	console.log(`Server started successfully. Port [${port}]`);
+	logger.info(`Server started successfully. Port [${port}]`)
 })
+
 
 const jsonBodyParser = express.json();
 server.use(jsonBodyParser);
