@@ -4,6 +4,7 @@ let knexLib = require('knex');
 const knexConfig = require('../knexfile.js');
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
+const logger = require('../utils/logger')('google-routes');
 
 async function getGoogleCalendar(req, res, next) {
 	const { userId } = req._auth;
@@ -19,6 +20,7 @@ async function getGoogleCalendar(req, res, next) {
 				? `${redirect}?status=success&modal=success`
 				: `http://localhost:5173/user/${userId}/${calendarName}/${calendarName}_calendar?status=success`;
 
+			logger.info(`${req.method} ${req.url} Redirect to service ${redirectUrl}`);
 			return res.redirect(redirectUrl);
 		}
 		await knex('users').where({ userId } ).update({ google_refresh : ''});
@@ -26,10 +28,11 @@ async function getGoogleCalendar(req, res, next) {
 		redirectUrl = calendarName === 'all'
 			? `${redirect}?status=success`
 			: `http://localhost:5173/user/${userId}/${calendarName}/${calendarName}_calendar?status=bad_request`;
-
+		logger.info(`${req.method} ${req.url} Redirect to service ${redirectUrl}`);
 		return res.redirect(redirectUrl);
 	} catch (error) {
 		console.log('Error [connecting google calendar]: ', error);
+		logger.info(`${req.method} ${req.url} Message error: ${error}`);
 		return res.redirect(`http://localhost:5173/user/${userId}/${calendarName}`);
 	}
 
@@ -48,6 +51,7 @@ async function getGoogleCalendarEvents(req, res, next) {
 			const existingCalendar = await checkExistingCalendar(calendar, calendarName);
 
 			if (!existingCalendar) {
+				logger.info(`${req.method} ${req.url} 200 Google calendar [${calendarName}] is empty`);
 				return res.send({
 					result: true,
 					code: 200,
@@ -76,6 +80,7 @@ async function getGoogleCalendarEvents(req, res, next) {
 					})))
 					.filter(e => e.calendarName === 'beauty' || e.calendarName === 'family' || e.calendarName === 'general' )
 
+				logger.info(`${req.method} ${req.url} 200 Google calendar [${calendarName}] is available`);
 				return res.send({
 					result: true,
 					code: 200,
@@ -90,16 +95,17 @@ async function getGoogleCalendarEvents(req, res, next) {
 				orderBy: 'startTime',
 			});
 
+			logger.info(`${req.method} ${req.url} 200 Google events are available`);
 			return res.send({
 				result: true,
 				code: 200,
 				data: { events: eventsResponse.data.items },
-				message: 'Google calendar is available'})
+				message: 'Google events are available'})
 		}
 
 	} catch (error) {
 		console.error('Google calendar [GET GOOGLE EVENTS] ', error);
-		requestErrorHandling(error, res);
+		requestErrorHandling(error, res, req);
 	}
 }
 async function addGoogleEvent(req, res, next) {
@@ -108,6 +114,7 @@ async function addGoogleEvent(req, res, next) {
 	const { type: calendarName } = req.params;
 
 	if (!event.start || !event.end) {
+		logger.info(`${req.method} ${req.url} 406 No calendar data`);
 		return res.status(406).send({
 			result: false,
 			code: 406,
@@ -117,13 +124,13 @@ async function addGoogleEvent(req, res, next) {
 	}
 
 	try {
-
 		const { calendar, existingCalendar, newEvent } = await checksAndGetCalendars(req, res, next, calendarName, userId, null, event, true);
 
 		const result = await createNewEventObject(calendar, existingCalendar, newEvent);
 
 		result.data.calendarName = calendarName;
 
+		logger.info(`${req.method} ${req.url} 200 Google event was added successfully`);
 		return res.status(200).send({
 			result: true,
 			code: 200,
@@ -133,7 +140,7 @@ async function addGoogleEvent(req, res, next) {
 
 	} catch (error) {
 		console.error('Google calendar [ADD GOOGLE EVENT] ', error);
-		requestErrorHandling(error, res);
+		requestErrorHandling(error, res, req);
 	}
 }
 async function updateGoogleEvent(req, res, next) {
@@ -152,6 +159,7 @@ async function updateGoogleEvent(req, res, next) {
 
 		response.data.calendarName = calendarName;
 
+		logger.info(`${req.method} ${req.url} 200 Google event updated successfully`);
 		return res.status(200).send({
 			result: true,
 			code: 200,
@@ -161,7 +169,7 @@ async function updateGoogleEvent(req, res, next) {
 
 	} catch (error) {
 		console.error('Google calendar [UPDATE GOOGLE EVENT] ', error);
-		requestErrorHandling(error, res);
+		requestErrorHandling(error, res, req);
 	}
 }
 
@@ -177,6 +185,7 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 			eventId
 		})
 
+		logger.info(`${req.method} ${req.url} 200 Google event removed successfully`);
 		return res.status(200).send({
 			result: true,
 			code: 200,
@@ -186,7 +195,7 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 
 	} catch (error) {
 		console.error('Google calendar [REMOVE GOOGLE EVENT] ', error);
-		requestErrorHandling(error, res)
+		requestErrorHandling(error, res, req)
 	}
 }
 
@@ -194,6 +203,7 @@ async function removeEventFromGoogleCalendar(req, res, next) {
 async function checkGoogleToken(req, res, next, token, userId) {
 	if (!token.access_token) {
 		await knex('users').where({ userId } ).update({ google_refresh : ''});
+		logger.info(`${req.method} ${req.url} 401 Google Token is not available`);
 		return res.status(401).send({
 			result: false,
 			code: 401,
@@ -240,8 +250,9 @@ function adaptEventTypeForGoogleAPI(event) {
 		}
 	}
 }
-function requestErrorHandling(error, res) {
+function requestErrorHandling(error, res, req) {
 	if (error.code === 401 || error.response?.status === 401) {
+		logger.info(`${req.method} ${req.url} 401 Unauthorized or token expired`);
 		return res.status(401).send({
 			result: false,
 			code: 401,
@@ -249,6 +260,7 @@ function requestErrorHandling(error, res) {
 			message: 'Unauthorized or token expired'
 		});
 	}
+	logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
 	return res.status(500).send({
 		result: false,
 		code: 500,
@@ -256,8 +268,9 @@ function requestErrorHandling(error, res) {
 		message: 'Server error'
 	})
 }
-function checkEventCalendarDataExist(eventId, calendarName, res) {
+function checkEventCalendarDataExist(eventId, calendarName, res, req) {
 	if (!eventId || !calendarName) {
+		logger.info(`${req.method} ${req.url} 406 No calendar data`);
 		return res.status(406).send({
 			result: false,
 			code: 406,
@@ -277,7 +290,7 @@ async function checksAndGetCalendars(
 	event = null,
 	create = false
 ) {
-	if (eventId && !checkEventCalendarDataExist(eventId, calendarName, res)) return;
+	if (eventId && !checkEventCalendarDataExist(eventId, calendarName, res, req)) return;
 	let newEvent = null;
 
 	if (event) {
@@ -292,8 +305,9 @@ async function checksAndGetCalendars(
 
 	if (!existingCalendar) {
 		if (create) {
-			await createNewCalendar(calendar, calendarName, newEvent, res);
+			await createNewCalendar(calendar, calendarName, newEvent, res, req);
 		} else {
+			logger.info(`${req.method} ${req.url} 404 Calendar [${calendarName}] does not exist`);
 			return res.status(404).send({
 				result: false,
 				code: 404,
@@ -310,7 +324,7 @@ async function checksAndGetCalendars(
 	}
 }
 
-async function createNewCalendar(calendar, calendarName, newEvent, res) {
+async function createNewCalendar(calendar, calendarName, newEvent, res, req) {
 	const newCalendar = await calendar.calendars.insert({
 		requestBody: {
 			summary: calendarName,
@@ -319,6 +333,7 @@ async function createNewCalendar(calendar, calendarName, newEvent, res) {
 	});
 	const resultNew = await createNewEventObject(calendar, newCalendar, newEvent);
 
+	logger.info(`${req.method} ${req.url} 200 Google calendar created successfully`);
 	return res.send({
 		result: true,
 		code: 200,
