@@ -12,6 +12,11 @@ const { router: translateRouter } = require('./routes/translateRoute');
 const isProd = process.env.NODE_ENV === 'production';
 const express = require('express');
 const server = express();
+const cron = require('node-cron');
+let knexLib = require('knex');
+const knexConfig = require('./knexfile.js');
+const environment = process.env.NODE_ENV || 'development';
+const knex = knexLib(knexConfig[environment]);
 
 server.use(cors({
 	origin: isProd ? 'https://prod' : 'http://localhost:5173',
@@ -20,6 +25,24 @@ server.use(cors({
 
 server.use(cookieParser());
 
+cron.schedule('59 23 * * *', async () => {
+	logger.info('reset_timer', 'Timer reset 23:59.')
+	await knex('timer_details').update({
+		paused_time: null,
+		is_paused: false,
+		paused_at: null
+	});
+
+	const users = await knex('users').select('userId');
+
+	const notifications = users.map(user => ({
+		userId: user.userId,
+		message: 'Таймер \"Время для себя\" был обнулен!',
+		created_at: Date.now()
+	}))
+
+	await knex('notifications').insert(notifications)
+});
 server.listen(port, (req, res) => {
 	server.get('/', (req, res) => {
 		res.send({ result: true, message: 'server started'})
