@@ -3,6 +3,7 @@ const knexConfig = require('../knexfile.js');
 const environment = process.env.NODE_ENV || 'development';
 const knex = knexLib(knexConfig[environment]);
 const { v4 : uuidv4 } = require('uuid');
+const {groupByPrefixes} = require("../utils/groupByPrefixes");
 const logger = require('../utils/logger')('mama-mood-diary');
 
 async function updateMamaMood(req, res, next) {
@@ -37,12 +38,22 @@ async function getMamaInfo(req, res, next) {
 	const { userId } = req._auth;
 
 	try {
-		const result = await knex('mama_about').where({ userId }).first();
+		const result = await knex('mama_about')
+			.leftJoin('timer_details', 'mama_about.userId', 'timer_details.userId')
+			.select('mama_about.*',
+				'timer_details.id as timer_id',
+				'timer_details.total_time as timer_total_time',
+				'timer_details.paused_time as timer_paused_time',
+				'timer_details.is_paused as timer_is_paused',
+				'timer_details.started_at as timer_started_at' ,
+				'timer_details.paused_at as timer_paused_at')
+			.where('mama_about.userId', userId)
+			.first();
 
 		logger.info(`${req.method} ${req.url} 200 Mama info got successfully`);
 		res.send({
 			result: true,
-			data: result,
+			data: groupByPrefixes(['timer'], result),
 			code: 200,
 			message: 'Successful'
 		})
@@ -220,18 +231,36 @@ async function updateTimerValue(req, res, next) {
 	const { userId } = req._auth;
 	const { body: timer } = req;
 
+	console.log(timer)
+
+	const updatedTimer = {
+		...timer,
+		userId,
+		paused_time: timer.paused_time || timer.total_time * 60,
+		is_paused: timer.is_paused || false,
+		started_at: Date.now(),
+		paused_at: timer.is_paused ? Date.now() : null
+	}
+
 	try {
-		await knex('mama_about').where({ userId }).update({ timer: timer.total_time });
+		if (updatedTimer.total_time) {
+			await knex('mama_about').where({ userId }).update({ timer: updatedTimer.total_time });
+		}
 		const existingTimer = await knex('timer_details').where({ userId }).first();
 		let result;
+
 		if (existingTimer) {
-			result = await knex('timer_details').where({ userId }).update(timer);
+			result = await knex('timer_details').where({ userId }).update(updatedTimer);
 		} else {
-			result = await knex('timer_details').where({ userId }).insert(timer);
+			result = await knex('timer_details').where({ userId }).insert(updatedTimer);
 		}
 
+		const response = await knex('timer_details')
+			.where({ userId })
+			.first();
+
 		logger.info(`${req.method} ${req.url} 200 Timer value updated`);
-		return res.status(200).send({ result: true, message: 'Timer value updated', data: result});
+		return res.status(200).send({ result: true, message: 'Timer value updated', data: response});
 	} catch (error) {
 		console.error('Error [update timer value]: ', error);
 		logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
