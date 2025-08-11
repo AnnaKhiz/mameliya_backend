@@ -8,7 +8,8 @@ const {
 	addDiaryPost,
 	getDiaryPostsList,
 	removeDiaryPostById,
-	updateDiaryPost
+	updateDiaryPost,
+	updateTimerValue
 } = require('../services/mamaDataService');
 
 router.get('/info', parserJwt, getMamaInfo);
@@ -19,6 +20,7 @@ router.get('/diary', parserJwt, getDiaryPostsList);
 router.post('/diary/add', parserJwt, addDiaryPost);
 router.delete('/diary/remove/:id', parserJwt, removeDiaryPostById);
 router.patch('/diary/update/:id', parserJwt, updateDiaryPost);
+router.patch('/timer/update', parserJwt, updateTimerValue)
 
 
 

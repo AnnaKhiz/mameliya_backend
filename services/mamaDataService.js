@@ -216,6 +216,28 @@ async function updateDiaryPost(req, res, next) {
 
 }
 
+async function updateTimerValue(req, res, next) {
+	const { userId } = req._auth;
+	const { body: timer } = req;
+
+	try {
+		await knex('mama_about').where({ userId }).update({ timer: timer.total_time });
+		const existingTimer = await knex('timer_details').where({ userId }).first();
+		let result;
+		if (existingTimer) {
+			result = await knex('timer_details').where({ userId }).update(timer);
+		} else {
+			result = await knex('timer_details').where({ userId }).insert(timer);
+		}
+
+		logger.info(`${req.method} ${req.url} 200 Timer value updated`);
+		return res.status(200).send({ result: true, message: 'Timer value updated', data: result});
+	} catch (error) {
+		console.error('Error [update timer value]: ', error);
+		logger.info(`${req.method} ${req.url} 500 Message error: ${error}`);
+		return res.status(500).send({ result: false, message: 'Timer value did not updated', data: null});
+	}
+}
 
 module.exports = {
 	updateMamaMood,
@@ -225,5 +247,6 @@ module.exports = {
 	addDiaryPost,
 	getDiaryPostsList,
 	removeDiaryPostById,
-	updateDiaryPost
+	updateDiaryPost,
+	updateTimerValue
 }
