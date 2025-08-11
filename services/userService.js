@@ -43,6 +43,8 @@ async function updateUserInfo(req, res, next) {
 	}
 }
 
+
+
 module.exports = {
-	updateUserInfo
+	updateUserInfo,
 }
