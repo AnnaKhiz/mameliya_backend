@@ -231,15 +231,14 @@ async function updateTimerValue(req, res, next) {
 	const { userId } = req._auth;
 	const { body: timer } = req;
 
-	console.log(timer)
-
 	const updatedTimer = {
 		...timer,
 		userId,
 		paused_time: timer.paused_time || timer.total_time * 60,
 		is_paused: timer.is_paused || false,
 		started_at: Date.now(),
-		paused_at: timer.is_paused ? Date.now() : null
+		paused_at: timer.is_paused ? Date.now() : null,
+		is_used_today: timer.is_used_today || false
 	}
 
 	try {
