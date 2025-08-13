@@ -46,7 +46,8 @@ async function getMamaInfo(req, res, next) {
 				'timer_details.paused_time as timer_paused_time',
 				'timer_details.is_paused as timer_is_paused',
 				'timer_details.started_at as timer_started_at' ,
-				'timer_details.paused_at as timer_paused_at')
+				'timer_details.paused_at as timer_paused_at',
+				'timer_details.is_used_today as timer_is_used_today')
 			.where('mama_about.userId', userId)
 			.first();
 
