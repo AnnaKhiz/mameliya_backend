@@ -7,7 +7,7 @@ async function getNotificationList(req, res, next) {
 	const { userId } = req._auth;
 
 	try {
-		const response = await knex('notifications').where({ userId }).first();
+		const response = await knex('notifications').where({ userId });
 
 		if (!response) {
 			logger.info(`${req.method} ${req.url} 404 No notifications found`);
@@ -15,7 +15,7 @@ async function getNotificationList(req, res, next) {
 		}
 
 		logger.info(`${req.method} ${req.url} 200 Notifications uploaded successfully`);
-		return res.send({ result: true, code: 200, data: [response], message: 'Notifications uploaded successfully'});
+		return res.send({ result: true, code: 200, data: response, message: 'Notifications uploaded successfully'});
 
 	} catch (error) {
 		console.log('Error [GET NOTIFICATIONS] :', error);
@@ -36,10 +36,10 @@ async function updateNotificationState(req, res, next) {
 			return res.send({ result: true, code: 403, data: [], message: 'Notification did not update'});
 		}
 
-		const result = await knex('notifications').where({ userId }).first();
+		const result = await knex('notifications').where({ userId });
 
 		logger.info(`${req.method} ${req.url} 200 Notifications updated successfully`);
-		return res.send({ result: true, code: 200, data: [result], message: 'Notifications updated successfully'});
+		return res.send({ result: true, code: 200, data: result, message: 'Notifications updated successfully'});
 
 	} catch (error) {
 		console.log('Error [GET NOTIFICATIONS] :', error);
