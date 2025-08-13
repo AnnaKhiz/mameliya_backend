@@ -31,18 +31,25 @@ cron.schedule('59 23 * * *', async () => {
 	await knex('timer_details').update({
 		paused_time: null,
 		is_paused: false,
-		paused_at: null
+		paused_at: null,
+		is_used_today: false
 	});
 
 	const users = await knex('users').select('userId');
+	const now = Date.now();
+	const notifications = users.flatMap(({ userId }) => [{
+			userId: userId,
+			message: 'Таймер \"Время для себя\" был обнулен!',
+			created_at: now
+		},
+		{
+			userId: userId,
+			message: 'Ты сегодня не использовала таймер \"Время для себя\"!',
+			created_at: now
+		}]
+	)
 
-	const notifications = users.map(user => ({
-		userId: user.userId,
-		message: 'Таймер \"Время для себя\" был обнулен!',
-		created_at: Date.now()
-	}))
-
-	await knex('notifications').insert(notifications)
+	await knex('notifications').insert(notifications);
 });
 server.listen(port, (req, res) => {
 	server.get('/', (req, res) => {

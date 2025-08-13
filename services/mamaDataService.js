@@ -46,7 +46,8 @@ async function getMamaInfo(req, res, next) {
 				'timer_details.paused_time as timer_paused_time',
 				'timer_details.is_paused as timer_is_paused',
 				'timer_details.started_at as timer_started_at' ,
-				'timer_details.paused_at as timer_paused_at')
+				'timer_details.paused_at as timer_paused_at',
+				'timer_details.is_used_today as timer_is_used_today')
 			.where('mama_about.userId', userId)
 			.first();
 
@@ -231,15 +232,14 @@ async function updateTimerValue(req, res, next) {
 	const { userId } = req._auth;
 	const { body: timer } = req;
 
-	console.log(timer)
-
 	const updatedTimer = {
 		...timer,
 		userId,
 		paused_time: timer.paused_time || timer.total_time * 60,
 		is_paused: timer.is_paused || false,
 		started_at: Date.now(),
-		paused_at: timer.is_paused ? Date.now() : null
+		paused_at: timer.is_paused ? Date.now() : null,
+		is_used_today: timer.is_used_today || false
 	}
 
 	try {
